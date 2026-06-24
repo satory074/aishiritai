@@ -1,0 +1,237 @@
+---
+import Demo from "@/components/Demo.astro";
+// SVM の「マージン最大化」を体感するデモ。境界線を回し・ずらして、
+// 両クラスの最も近い点（サポートベクター）までの余白＝マージンを最大にする。
+---
+
+<Demo
+  title="マージン最大化とサポートベクター"
+  caption="角度とオフセットで境界線を動かすと、両側の最も近い点までの「余白（マージン）」が変わる。マージンが最大になる線だけがサポートベクター（縁の点）で決まり、他の点は効かない。「最大マージンを探す」で最適な一本へ。"
+  label="DEMO 4.1"
+>
+  <div class="mg" data-margin>
+    <svg class="mg__svg" viewBox="0 0 280 280" role="img" aria-label="マージン最大化">
+      <g class="mg__axes">
+        <line x1="140" y1="6" x2="140" y2="274"></line>
+        <line x1="6" y1="140" x2="274" y2="140"></line>
+      </g>
+      <line data-street1 class="mg__street" x1="0" y1="0" x2="0" y2="0"></line>
+      <line data-street2 class="mg__street" x1="0" y1="0" x2="0" y2="0"></line>
+      <line data-line class="mg__line" x1="0" y1="0" x2="0" y2="0"></line>
+      <g data-points></g>
+    </svg>
+
+    <div class="mg__ctrls">
+      <div class="d-row">
+        <span class="d-label">角度 θ</span>
+        <input class="d-slider" data-theta type="range" min="0" max="359" step="1" value="60" />
+        <span class="d-val" data-thetaval>60°</span>
+      </div>
+      <div class="d-row">
+        <span class="d-label">位置 b</span>
+        <input class="d-slider" data-bias type="range" min="-1.1" max="1.1" step="0.02" value="0" />
+        <span class="d-val" data-biasval>0.00</span>
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-best type="button">最大マージンを探す</button>
+      </div>
+      <div class="d-panel d-readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Pt = { x: number; y: number; label: 1 | -1 };
+  const PTS: Pt[] = [
+    { x: 0.55, y: 0.5, label: 1 }, { x: 0.78, y: 0.35, label: 1 },
+    { x: 0.42, y: 0.7, label: 1 }, { x: 0.85, y: 0.62, label: 1 },
+    { x: 0.6, y: 0.22, label: 1 }, { x: 0.22, y: 0.32, label: 1 },
+    { x: -0.5, y: -0.45, label: -1 }, { x: -0.72, y: -0.3, label: -1 },
+    { x: -0.4, y: -0.68, label: -1 }, { x: -0.82, y: -0.55, label: -1 },
+    { x: -0.55, y: -0.18, label: -1 }, { x: -0.18, y: -0.28, label: -1 },
+  ];
+  const R = 1.2;
+  const sx = (x: number) => ((x + R) / (2 * R)) * 280;
+  const sy = (y: number) => ((R - y) / (2 * R)) * 280;
+
+  function setup(root: HTMLElement) {
+    const q = <T extends Element>(s: string) => root.querySelector(s) as T | null;
+    const ptsG = q<SVGGElement>("[data-points]")!;
+    const lineEl = q<SVGLineElement>("[data-line]")!;
+    const s1 = q<SVGLineElement>("[data-street1]")!;
+    const s2 = q<SVGLineElement>("[data-street2]")!;
+    const readout = q<HTMLElement>("[data-readout]")!;
+
+    let thetaDeg = 60,
+      b = 0;
+
+    function geom() {
+      const th = (thetaDeg * Math.PI) / 180;
+      const n = { x: Math.cos(th), y: Math.sin(th) }; // 単位法線
+      const signed = PTS.map((p) => n.x * p.x + n.y * p.y - b);
+      const sepPos = PTS.every((p, i) => (p.label === 1 ? signed[i] > 0 : signed[i] < 0));
+      const margin = Math.min(...signed.map(Math.abs));
+      return { n, signed, sepPos, margin };
+    }
+
+    function lineFor(c: number): [number, number, number, number] {
+      // n·p = c の直線。接線方向 u=(-ny,nx) に沿って引く
+      const th = (thetaDeg * Math.PI) / 180;
+      const nx = Math.cos(th), ny = Math.sin(th);
+      const p0x = c * nx, p0y = c * ny;
+      const ux = -ny, uy = nx;
+      const S = 2.2;
+      return [
+        sx(p0x - ux * S), sy(p0y - uy * S),
+        sx(p0x + ux * S), sy(p0y + uy * S),
+      ];
+    }
+
+    function render() {
+      const { signed, sepPos, margin } = geom();
+      const [x1, y1, x2, y2] = lineFor(b);
+      lineEl.setAttribute("x1", String(x1));
+      lineEl.setAttribute("y1", String(y1));
+      lineEl.setAttribute("x2", String(x2));
+      lineEl.setAttribute("y2", String(y2));
+
+      const showStreet = sepPos;
+      [s1, s2].forEach((s, k) => {
+        if (!showStreet) {
+          s.style.opacity = "0";
+          return;
+        }
+        s.style.opacity = "1";
+        const [a, bb, c, d] = lineFor(b + (k === 0 ? margin : -margin));
+        s.setAttribute("x1", String(a));
+        s.setAttribute("y1", String(bb));
+        s.setAttribute("x2", String(c));
+        s.setAttribute("y2", String(d));
+      });
+
+      const isSV = signed.map((v) => sepPos && Math.abs(Math.abs(v) - margin) < 1e-3);
+      ptsG.innerHTML = PTS.map((p, i) => {
+        const cls = `mg-pt mg-pt--${p.label === 1 ? "pos" : "neg"}${isSV[i] ? " mg-pt--sv" : ""}`;
+        return `<circle class="${cls}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="6"></circle>`;
+      }).join("");
+
+      q<HTMLElement>("[data-thetaval]")!.textContent = `${thetaDeg}°`;
+      q<HTMLElement>("[data-biasval]")!.textContent = b.toFixed(2);
+
+      readout.innerHTML = sepPos
+        ? `マージン = <b>${margin.toFixed(3)}</b> &nbsp; サポートベクター: <b>${isSV.filter(Boolean).length}</b> 個` +
+          (margin > 0.49
+            ? ` &nbsp;→&nbsp; <span class="d-fire d-fire--on">ほぼ最大 ✓</span>`
+            : "")
+        : `<span class="mg-warn">未分離</span>：線の片側に両方のクラスが混在しています。`;
+    }
+
+    function findBest() {
+      let best = { m: -1, th: thetaDeg, b: 0 };
+      for (let t = 0; t < 360; t++) {
+        const th = (t * Math.PI) / 180;
+        const nx = Math.cos(th), ny = Math.sin(th);
+        const tp = PTS.filter((p) => p.label === 1).map((p) => nx * p.x + ny * p.y);
+        const tn = PTS.filter((p) => p.label === -1).map((p) => nx * p.x + ny * p.y);
+        const minPos = Math.min(...tp), maxNeg = Math.max(...tn);
+        if (minPos > maxNeg) {
+          const m = (minPos - maxNeg) / 2;
+          if (m > best.m) best = { m, th: t, b: (minPos + maxNeg) / 2 };
+        }
+      }
+      // スライダーへアニメーションで寄せる
+      const startT = thetaDeg, startB = b;
+      const steps = 24;
+      let k = 0;
+      const tick = () => {
+        k++;
+        const e = k / steps;
+        thetaDeg = Math.round(startT + (best.th - startT) * e);
+        b = startB + (best.b - startB) * e;
+        q<HTMLInputElement>("[data-theta]")!.value = String(thetaDeg);
+        q<HTMLInputElement>("[data-bias]")!.value = String(b);
+        render();
+        if (k < steps) requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
+    q<HTMLInputElement>("[data-theta]")!.addEventListener("input", (e) => {
+      thetaDeg = Number((e.target as HTMLInputElement).value);
+      render();
+    });
+    q<HTMLInputElement>("[data-bias]")!.addEventListener("input", (e) => {
+      b = Number((e.target as HTMLInputElement).value);
+      render();
+    });
+    q<HTMLButtonElement>("[data-best]")!.addEventListener("click", findBest);
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-margin]").forEach(setup);
+</script>
+
+<style>
+  .mg {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 280px) 1fr;
+    align-items: start;
+  }
+  @media (max-width: 560px) {
+    .mg {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+  }
+  .mg__svg {
+    width: 100%;
+    max-width: 280px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .mg__axes line {
+    stroke: var(--border);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+  .mg__line {
+    stroke: hsl(var(--era-hue) 90% 66%);
+    stroke-width: 2.5;
+  }
+  .mg__street {
+    stroke: hsl(var(--era-hue) 85% 64%);
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+    opacity: 0.6;
+  }
+  :global(.mg-pt) {
+    stroke: var(--bg);
+    stroke-width: 1.5;
+  }
+  :global(.mg-pt--pos) {
+    fill: hsl(var(--era-hue) 90% 64%);
+  }
+  :global(.mg-pt--neg) {
+    fill: var(--text-dim);
+  }
+  :global(.mg-pt--sv) {
+    stroke: #fff;
+    stroke-width: 2.5;
+  }
+  .mg__ctrls {
+    display: grid;
+    gap: 0.7rem;
+    align-content: start;
+  }
+  .mg__ctrls :global(b) {
+    color: #fff;
+  }
+  .mg__ctrls :global(.mg-warn) {
+    color: var(--amber);
+    font-weight: 700;
+  }
+</style>

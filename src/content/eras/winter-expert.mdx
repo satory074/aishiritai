@@ -10,6 +10,7 @@ people: ["minsky", "rumelhart", "hinton", "fukushima"]
 ---
 
 import WeBackprop from "@/components/figures/WeBackprop.astro";
+import GradientDescent from "@/components/demos/GradientDescent.astro";
 
 前章で、単層パーセプトロンは<Term id="xor-problem">XOR</Term>すら分離できないという壁に突き当たりました。
 ミンスキーとパパートの『Perceptrons』(1969) はこの限界を数学的に突きつけ、神経回路への期待は急速にしぼみます。
@@ -71,7 +72,12 @@ $$
 \mathbf{w} \leftarrow \mathbf{w} - \eta\,\frac{\partial L}{\partial \mathbf{w}}
 $$
 
-ここで $\eta$ は学習率。問題は、深い層では「ある重み → 中間の出力 → … → 損失」と影響が
+この $\eta$（学習率）の感覚をつかむために、1次元の損失でボールを転がしてみましょう。
+小さすぎても大きすぎてもうまく谷に着けないことが、触ると一目で分かります。
+
+<GradientDescent />
+
+問題は、深い層では「ある重み → 中間の出力 → … → 損失」と影響が
 何段も**合成**されている点です。そこで連鎖律の出番です。各ニューロンの誤差信号
 $\delta = \partial L/\partial z$（$z$ は活性化前の入力）を、出力層から一段ずつ
 後ろへ伝えていく。隠れ層の $\delta$ は、次の層の $\delta$ に重みと活性化の傾きを掛けて得られます。

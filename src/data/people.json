@@ -11,8 +11,17 @@
       "第二次大戦中の暗号解読（Bombe / Enigma）"
     ],
     "links": [
-      { "label": "Computing Machinery and Intelligence (1950)", "url": "https://academic.oup.com/mind/article/LIX/236/433/986238" }
-    ]
+      {
+        "label": "Computing Machinery and Intelligence (1950)",
+        "url": "https://academic.oup.com/mind/article/LIX/236/433/986238"
+      }
+    ],
+    "photo": {
+      "src": "people/turing.jpg",
+      "license": "Public domain",
+      "by": "Elliott & Fry",
+      "source": "https://commons.wikimedia.org/wiki/File:Alan_turing_header.jpg"
+    }
   },
   "mcculloch": {
     "name": "ウォーレン・マカロック",
@@ -31,7 +40,15 @@
     "born": 1923,
     "died": 1969,
     "role": "論理学者。形式ニューロンの数理モデルを共同で構築",
-    "works": ["マカロックとの形式ニューロン論文 (1943)"]
+    "works": [
+      "マカロックとの形式ニューロン論文 (1943)"
+    ],
+    "photo": {
+      "src": "people/pitts.jpg",
+      "license": "Public domain",
+      "by": "Francis Bello",
+      "source": "https://commons.wikimedia.org/wiki/File:1954_Walter_Pitts_and_a_blackboard.jpg"
+    }
   },
   "mccarthy": {
     "name": "ジョン・マッカーシー",
@@ -43,7 +60,13 @@
       "ダートマス会議の提案・主催 (1956)",
       "プログラミング言語 LISP の開発 (1958)",
       "チューリング賞 (1971)"
-    ]
+    ],
+    "photo": {
+      "src": "people/mccarthy.jpg",
+      "license": "CC BY-SA 2.0",
+      "by": "Flickr user “null0”",
+      "source": "https://commons.wikimedia.org/wiki/File:John_McCarthy_Stanford.jpg"
+    }
   },
   "minsky": {
     "name": "マービン・ミンスキー",
@@ -55,7 +78,13 @@
       "パパートとの共著『Perceptrons』でパーセプトロンの限界を示す (1969)",
       "知識表現「フレーム理論」",
       "チューリング賞 (1969)"
-    ]
+    ],
+    "photo": {
+      "src": "people/minsky.jpg",
+      "license": "CC BY 3.0",
+      "by": "Sethwoodworth (Wikipedia)",
+      "source": "https://commons.wikimedia.org/wiki/File:Marvin_Minsky_at_OLPCb_(3x4_cropped).jpg"
+    }
   },
   "rosenblatt": {
     "name": "フランク・ローゼンブラット",
@@ -66,7 +95,13 @@
     "works": [
       "パーセプトロンの提案と収束定理 (1958)",
       "ハードウェア実装 Mark I Perceptron"
-    ]
+    ],
+    "photo": {
+      "src": "people/rosenblatt.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Unknown author / Heinz Nixdorf MuseumsForum",
+      "source": "https://commons.wikimedia.org/wiki/File:Frank_Rosenblatt.jpg"
+    }
   },
   "fukushima": {
     "name": "福島邦彦",
@@ -86,7 +121,13 @@
     "works": [
       "ホップフィールド・ネットワーク (1982)",
       "ニューラルネット研究へのノーベル物理学賞 (2024, ヒントンと共同)"
-    ]
+    ],
+    "photo": {
+      "src": "people/hopfield.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Jay Dixit",
+      "source": "https://commons.wikimedia.org/wiki/File:John_J._Hopfield_delivering_his_lecture_at_the_2024_Nobel_Prize_Lectures_in_Stockholm.jpg"
+    }
   },
   "rumelhart": {
     "name": "デビッド・ラメルハート",
@@ -97,7 +138,13 @@
     "works": [
       "ヒントン・ウィリアムズとの誤差逆伝播論文 (1986)",
       "並列分散処理 (PDP) 研究"
-    ]
+    ],
+    "photo": {
+      "src": "people/rumelhart.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Rolf Kickuth",
+      "source": "https://commons.wikimedia.org/wiki/File:DavidRumelhart-IJCNNseattle1991-07-08.jpg"
+    }
   },
   "hinton": {
     "name": "ジェフリー・ヒントン",
@@ -109,7 +156,13 @@
       "深層信念ネットワークと層ごと事前学習 (2006)",
       "AlexNet による ImageNet 制覇 (2012)",
       "チューリング賞 (2018)・ノーベル物理学賞 (2024)"
-    ]
+    ],
+    "photo": {
+      "src": "people/hinton.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Cmichel67",
+      "source": "https://commons.wikimedia.org/wiki/File:Geoffrey_Hinton_in_2026.jpg"
+    }
   },
   "lecun": {
     "name": "ヤン・ルカン",
@@ -120,7 +173,13 @@
       "LeNet-5 による手書き数字認識 (1998)",
       "Meta AI（FAIR）初代所長",
       "チューリング賞 (2018)"
-    ]
+    ],
+    "photo": {
+      "src": "people/lecun.jpg",
+      "license": "CC BY-SA 2.0",
+      "by": "Jérémy Barande / École polytechnique",
+      "source": "https://commons.wikimedia.org/wiki/File:Laura_Chaubard_%26_Yann_Le_Cun_-_2024_(53814052697)_(cropped).jpg"
+    }
   },
   "bengio": {
     "name": "ヨシュア・ベンジオ",
@@ -131,7 +190,13 @@
       "ニューラル言語モデル (2003)",
       "アテンション機構の初期研究 (2014)",
       "チューリング賞 (2018)"
-    ]
+    ],
+    "photo": {
+      "src": "people/bengio.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Xuthoria",
+      "source": "https://commons.wikimedia.org/wiki/File:ICLR_2025_-_Yoshua_Bengio_02.jpg"
+    }
   },
   "schmidhuber": {
     "name": "ユルゲン・シュミットフーバー",
@@ -141,14 +206,28 @@
     "works": [
       "ホッフライターとの LSTM (1997)",
       "メタ学習・自己改善エージェントの研究"
-    ]
+    ],
+    "photo": {
+      "src": "people/schmidhuber.jpg",
+      "license": "CC BY 2.0",
+      "by": "ITU / R. Farrell",
+      "source": "https://commons.wikimedia.org/wiki/File:J%C3%BCrgen_Schmidhuber,_2017_(cropped).jpg"
+    }
   },
   "hochreiter": {
     "name": "ゼップ・ホッフライター",
     "en": "Sepp Hochreiter",
     "born": 1967,
     "role": "勾配消失問題を定式化し LSTM を考案",
-    "works": ["勾配消失問題の分析と LSTM (1997)"]
+    "works": [
+      "勾配消失問題の分析と LSTM (1997)"
+    ],
+    "photo": {
+      "src": "people/hochreiter.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "C. Stadler / Bwag",
+      "source": "https://commons.wikimedia.org/wiki/File:Sepp_Hochreiter_-_Buch_Wien_2025.JPG"
+    }
   },
   "vapnik": {
     "name": "ウラジミール・ヴァプニク",
@@ -169,13 +248,21 @@
       "ImageNet の構築 (2009)",
       "ILSVRC コンペティションの主導",
       "スタンフォード HAI 共同所長"
-    ]
+    ],
+    "photo": {
+      "src": "people/li.jpg",
+      "license": "CC BY 2.0",
+      "by": "ITU Pictures",
+      "source": "https://commons.wikimedia.org/wiki/File:Fei-Fei_Li_at_AI_for_Good_2017.jpg"
+    }
   },
   "krizhevsky": {
     "name": "アレックス・クリジェフスキー",
     "en": "Alex Krizhevsky",
     "role": "ディープラーニング革命の引き金 AlexNet の筆頭著者",
-    "works": ["AlexNet による ImageNet 2012 優勝（誤差を一気に低減）"]
+    "works": [
+      "AlexNet による ImageNet 2012 優勝（誤差を一気に低減）"
+    ]
   },
   "sutskever": {
     "name": "イリヤ・サツケバー",
@@ -186,14 +273,29 @@
       "AlexNet 共著 (2012)",
       "seq2seq 学習 (2014)",
       "OpenAI 共同創業・チーフサイエンティスト"
-    ]
+    ],
+    "photo": {
+      "src": "people/sutskever.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Eladkarmel",
+      "source": "https://commons.wikimedia.org/wiki/File:Ilya_Sutskever_and_Sam_Altman_in_TAU_(cropped).jpg"
+    }
   },
   "goodfellow": {
     "name": "イアン・グッドフェロー",
     "en": "Ian Goodfellow",
     "born": 1985,
     "role": "生成モデルの一時代を作った GAN の考案者",
-    "works": ["敵対的生成ネットワーク (GAN) の提案 (2014)", "教科書『Deep Learning』共著"]
+    "works": [
+      "敵対的生成ネットワーク (GAN) の提案 (2014)",
+      "教科書『Deep Learning』共著"
+    ],
+    "photo": {
+      "src": "people/goodfellow.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "Ian Goodfellow",
+      "source": "https://commons.wikimedia.org/wiki/File:Ian_Goodfellow.jpg"
+    }
   },
   "hassabis": {
     "name": "デミス・ハサビス",
@@ -204,7 +306,13 @@
       "DeepMind 共同創業 (2010)",
       "AlphaGo / AlphaZero / AlphaFold",
       "ノーベル化学賞 (2024, AlphaFold)"
-    ]
+    ],
+    "photo": {
+      "src": "people/hassabis.jpg",
+      "license": "CC BY-SA 4.0",
+      "by": "John Sears",
+      "source": "https://commons.wikimedia.org/wiki/File:Demis_Hassabis,_2024_Nobel_Prize_Laureate_in_Chemistry_7_(cropped).jpg"
+    }
   },
   "silver": {
     "name": "デビッド・シルバー",
@@ -219,12 +327,17 @@
     "name": "アシシュ・ヴァスワニ",
     "en": "Ashish Vaswani",
     "role": "現代の生成AIを支える Transformer の筆頭著者",
-    "works": ["論文『Attention Is All You Need』筆頭著者 (2017)"]
+    "works": [
+      "論文『Attention Is All You Need』筆頭著者 (2017)"
+    ]
   },
   "radford": {
     "name": "アレック・ラドフォード",
     "en": "Alec Radford",
     "role": "GPT・CLIP など OpenAI の生成モデルを牽引",
-    "works": ["GPT-1/2 (2018–2019)", "CLIP (2021)"]
+    "works": [
+      "GPT-1/2 (2018–2019)",
+      "CLIP (2021)"
+    ]
   }
 }

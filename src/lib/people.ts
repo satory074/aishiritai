@@ -5,6 +5,13 @@ export interface PersonLink {
   url: string;
 }
 
+export interface PersonPhoto {
+  src: string; // public/ 以下の相対パス（例 "people/turing.jpg"）
+  license: string; // ライセンス名（例 "CC BY-SA 4.0" / "Public domain"）
+  by: string; // 撮影者・帰属
+  source: string; // 取得元（Wikimedia Commons ファイルページ）
+}
+
 export interface Person {
   name: string; // 日本語表記
   en: string; // 英語表記
@@ -13,6 +20,7 @@ export interface Person {
   role: string; // 肩書き・一言
   works: string[]; // 主要業績
   links?: PersonLink[]; // 外部リンク
+  photo?: PersonPhoto; // 顔写真（自由ライセンスが見つかった人のみ。無ければイニシャル表示）
 }
 
 const people = data as Record<string, Person>;

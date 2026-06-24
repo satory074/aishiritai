@@ -303,3 +303,163 @@ a:hover {
 .prose .katex-display > .katex {
   white-space: nowrap;
 }
+
+/* =========================================================================
+   インタラクティブ・デモの共通コントロール（demos/* で使う）
+   各デモの色は --era-hue を継承して時代色に自動で揃う。
+   ========================================================================= */
+.d-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.9rem;
+}
+.d-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.d-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.d-label {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.d-val {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: hsl(var(--era-hue) 88% 74%);
+  font-feature-settings: "tnum" 1;
+}
+.d-note {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.d-readout {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text);
+  font-feature-settings: "tnum" 1;
+}
+
+/* ボタン */
+.d-btn {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.34rem 0.7rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.d-btn:hover {
+  border-color: hsl(var(--era-hue) 80% 60%);
+  color: #fff;
+}
+.d-btn:active {
+  transform: translateY(1px);
+}
+.d-btn--primary {
+  color: var(--bg);
+  font-weight: 700;
+  background: hsl(var(--era-hue) 85% 64%);
+  border-color: hsl(var(--era-hue) 85% 64%);
+  box-shadow: 0 0 14px hsl(var(--era-hue) 90% 60% / 0.35);
+}
+.d-btn--primary:hover {
+  color: var(--bg);
+  background: hsl(var(--era-hue) 90% 70%);
+}
+.d-btn[aria-pressed="true"] {
+  color: var(--bg);
+  background: hsl(var(--era-hue) 85% 66%);
+  border-color: hsl(var(--era-hue) 85% 66%);
+}
+.d-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* トグル・チップ（入力 ON/OFF やプリセット選択） */
+.d-chip {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.d-chip[aria-pressed="true"] {
+  color: var(--bg);
+  font-weight: 700;
+  background: hsl(var(--era-hue) 85% 66%);
+  border-color: hsl(var(--era-hue) 85% 66%);
+  box-shadow: 0 0 12px hsl(var(--era-hue) 90% 60% / 0.4);
+}
+
+/* スライダー（range） */
+.d-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: 240px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  outline-offset: 4px;
+  cursor: pointer;
+}
+.d-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: hsl(var(--era-hue) 88% 66%);
+  border: 2px solid var(--bg-soft);
+  box-shadow: 0 0 10px hsl(var(--era-hue) 90% 60% / 0.6);
+}
+.d-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--bg-soft);
+  border-radius: 50%;
+  background: hsl(var(--era-hue) 88% 66%);
+  box-shadow: 0 0 10px hsl(var(--era-hue) 90% 60% / 0.6);
+}
+
+/* 演算・状態のミニ表示パネル */
+.d-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+}
+.d-fire {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.d-fire--on {
+  color: var(--green);
+  text-shadow: 0 0 10px hsl(145 100% 60% / 0.5);
+}
+.d-fire--off {
+  color: var(--text-dim);
+}

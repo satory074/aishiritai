@@ -1,5 +1,6 @@
 ---
 import { getPerson, initials } from "@/lib/people";
+import { siteLink } from "@/lib/url";
 
 interface Props {
   id: string;
@@ -18,15 +19,30 @@ const lifespan = p
       ? `–${p.died}`
       : ""
   : "";
+
+// public/ 配下の画像は base path を手で付ける（動的 src は Astro が自動解決しない）
+const photoSrc = p?.photo ? siteLink(`/${p.photo.src}`) : null;
 ---
 
 {
   p && (
     <aside class="pcard not-prose">
       <div class="pcard__head">
-        <span class="pcard__avatar mono" aria-hidden="true">
-          {initials(p.en)}
-        </span>
+        {photoSrc ? (
+          <img
+            class="pcard__avatar pcard__avatar--photo"
+            src={photoSrc}
+            alt={`${p.name}（${p.en}）の顔写真`}
+            width="60"
+            height="60"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span class="pcard__avatar pcard__avatar--initials mono" aria-hidden="true">
+            {initials(p.en)}
+          </span>
+        )}
         <span class="pcard__id">
           <span class="pcard__name">{p.name}</span>
           <span class="pcard__en mono">
@@ -52,6 +68,14 @@ const lifespan = p
           ))}
         </div>
       )}
+      {p.photo && (
+        <p class="pcard__credit mono">
+          <span aria-hidden="true">📷</span> {p.photo.by} ·{" "}
+          <a href={p.photo.source} target="_blank" rel="noopener noreferrer">
+            {p.photo.license} ↗
+          </a>
+        </p>
+      )}
     </aside>
   )
 }
@@ -76,16 +100,28 @@ const lifespan = p
   }
   .pcard__avatar {
     flex: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+  }
+  .pcard__avatar--initials {
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--bg);
     background: hsl(var(--era-hue) 85% 66%);
     box-shadow: 0 0 14px hsl(var(--era-hue) 90% 60% / 0.45);
+  }
+  .pcard__avatar--photo {
+    object-fit: cover;
+    /* 顔は上寄りにあることが多いので中央やや上をクロップ中心にする */
+    object-position: 50% 22%;
+    background: var(--surface-2);
+    border: 1px solid hsl(var(--era-hue) 70% 60% / 0.6);
+    box-shadow:
+      0 0 0 2px var(--surface),
+      0 0 16px hsl(var(--era-hue) 90% 60% / 0.4);
   }
   .pcard__id {
     display: flex;
@@ -132,5 +168,20 @@ const lifespan = p
   .pcard__links a {
     color: hsl(var(--era-hue) 90% 74%);
     border: none;
+  }
+  .pcard__credit {
+    margin: 0.85rem 0 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--border-soft);
+    font-size: 0.66rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+  .pcard__credit a {
+    color: var(--text-muted);
+    border: none;
+  }
+  .pcard__credit a:hover {
+    color: hsl(var(--era-hue) 90% 74%);
   }
 </style>

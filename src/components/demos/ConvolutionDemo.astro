@@ -1,0 +1,346 @@
+---
+import Demo from "@/components/Demo.astro";
+// 3×3 フィルタを画像上で滑らせる畳み込みのデモ。フィルタを変えると
+// 縦エッジ・横エッジ・輪郭・ぼかしなど、検出される特徴が変わる。
+---
+
+<Demo
+  title="畳み込みフィルタを画像に滑らせる"
+  caption="同じ 3×3 フィルタを画像全体に滑らせ、各位置で重み付き和を取る（重み共有）。フィルタを「縦エッジ」「輪郭」などに変えると、出てくる特徴マップがまるごと変わる。これが CNN が局所特徴を拾う仕組み。"
+  label="DEMO 5.1"
+>
+  <div class="cv" data-conv>
+    <div class="cv__stage">
+      <div class="cv__block">
+        <span class="d-label">入力 7×7</span>
+        <div class="cv__grid cv__grid--in" data-in></div>
+      </div>
+      <div class="cv__op mono">
+        <span class="d-label">フィルタ</span>
+        <div class="cv__kernel" data-kernel></div>
+        <div class="cv__arrow">→</div>
+      </div>
+      <div class="cv__block">
+        <span class="d-label">特徴マップ 5×5</span>
+        <div class="cv__grid cv__grid--out" data-out></div>
+      </div>
+    </div>
+
+    <div class="cv__ctrls">
+      <div class="d-row" role="group" aria-label="フィルタ選択">
+        <button class="d-chip" data-k="edge" type="button" aria-pressed="true">輪郭</button>
+        <button class="d-chip" data-k="sx" type="button" aria-pressed="false">縦エッジ</button>
+        <button class="d-chip" data-k="sy" type="button" aria-pressed="false">横エッジ</button>
+        <button class="d-chip" data-k="blur" type="button" aria-pressed="false">ぼかし</button>
+        <button class="d-chip" data-k="sharp" type="button" aria-pressed="false">シャープ</button>
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-step type="button">▶ 1マス進める</button>
+        <button class="d-btn" data-auto type="button">自動</button>
+        <button class="d-btn" data-all type="button">全部畳み込む</button>
+        <button class="d-btn" data-reset type="button">リセット</button>
+      </div>
+      <div class="d-panel d-readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  const IN: number[][] = [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0.9, 0.9, 0.9, 0, 0],
+    [0, 0, 0.9, 0.9, 0.9, 0.9, 0],
+    [0, 0.6, 0.9, 0.9, 0.9, 0.9, 0],
+    [0, 0, 0.9, 0.9, 0.9, 0, 0],
+    [0, 0, 0, 0.9, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+  ];
+  const KERNELS: Record<string, { m: number[][]; div: number }> = {
+    edge: { m: [[0, -1, 0], [-1, 4, -1], [0, -1, 0]], div: 1 },
+    sx: { m: [[1, 0, -1], [2, 0, -2], [1, 0, -1]], div: 1 },
+    sy: { m: [[1, 2, 1], [0, 0, 0], [-1, -2, -1]], div: 1 },
+    blur: { m: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], div: 9 },
+    sharp: { m: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]], div: 1 },
+  };
+  const N = 7,
+    OUT = 5;
+
+  function setup(root: HTMLElement) {
+    const q = <T extends Element>(s: string) => root.querySelector(s) as T | null;
+    const inG = q<HTMLElement>("[data-in]")!;
+    const outG = q<HTMLElement>("[data-out]")!;
+    const kerG = q<HTMLElement>("[data-kernel]")!;
+    const readout = q<HTMLElement>("[data-readout]")!;
+
+    let kind = "edge";
+    let pos = -1; // -1 = 未開始, 0..24 = 出力セル index
+    let timer: number | null = null;
+    let outVals: (number | null)[] = Array(OUT * OUT).fill(null);
+
+    // 入力セル
+    inG.innerHTML = "";
+    for (let i = 0; i < N; i++)
+      for (let j = 0; j < N; j++) {
+        const v = IN[i][j];
+        const c = document.createElement("div");
+        c.className = "cv-cell";
+        c.dataset.i = String(i);
+        c.dataset.j = String(j);
+        c.style.background = `hsl(var(--era-hue) 35% ${(8 + v * 58).toFixed(0)}%)`;
+        inG.appendChild(c);
+      }
+    // 出力セル
+    outG.innerHTML = "";
+    for (let k = 0; k < OUT * OUT; k++) {
+      const c = document.createElement("div");
+      c.className = "cv-cell cv-cell--out";
+      outG.appendChild(c);
+    }
+
+    function fullOutput() {
+      const { m, div } = KERNELS[kind];
+      const vals: number[] = [];
+      for (let oi = 0; oi < OUT; oi++)
+        for (let oj = 0; oj < OUT; oj++) {
+          let s = 0;
+          for (let di = 0; di < 3; di++)
+            for (let dj = 0; dj < 3; dj++) s += IN[oi + di][oj + dj] * m[di][dj];
+          vals.push(s / div);
+        }
+      return vals;
+    }
+    const allVals = () => fullOutput();
+    let scale = 1;
+
+    function recolorScale() {
+      scale = Math.max(0.001, ...allVals().map((v) => Math.abs(v)));
+    }
+
+    function paintKernel() {
+      const { m, div } = KERNELS[kind];
+      kerG.innerHTML = "";
+      for (let di = 0; di < 3; di++)
+        for (let dj = 0; dj < 3; dj++) {
+          const c = document.createElement("div");
+          c.className = "cv-kcell";
+          c.textContent = div === 9 ? "⅑" : String(m[di][dj]);
+          kerG.appendChild(c);
+        }
+    }
+
+    function highlight() {
+      root.querySelectorAll(".cv-cell").forEach((c) => c.classList.remove("cv-win", "cv-cur"));
+      if (pos < 0) return;
+      const oi = Math.floor(pos / OUT),
+        oj = pos % OUT;
+      for (let di = 0; di < 3; di++)
+        for (let dj = 0; dj < 3; dj++) {
+          const cell = inG.children[(oi + di) * N + (oj + dj)] as HTMLElement;
+          cell.classList.add("cv-win");
+        }
+      (outG.children[pos] as HTMLElement).classList.add("cv-cur");
+    }
+
+    function paintOut() {
+      outVals.forEach((v, k) => {
+        const cell = outG.children[k] as HTMLElement;
+        if (v === null) {
+          cell.style.background = "var(--surface)";
+          cell.textContent = "";
+        } else {
+          const n = Math.min(1, Math.abs(v) / scale);
+          cell.style.background = `hsl(var(--era-hue) 80% ${(10 + n * 58).toFixed(0)}%)`;
+          cell.textContent = v.toFixed(1);
+        }
+      });
+    }
+
+    function computeAt(p: number) {
+      const { m, div } = KERNELS[kind];
+      const oi = Math.floor(p / OUT),
+        oj = p % OUT;
+      let s = 0;
+      const terms: string[] = [];
+      for (let di = 0; di < 3; di++)
+        for (let dj = 0; dj < 3; dj++) {
+          const iv = IN[oi + di][oj + dj];
+          const kv = m[di][dj];
+          s += iv * kv;
+          if (kv !== 0 && iv !== 0) terms.push(`${iv}·${kv}`);
+        }
+      return { val: s / div, oi, oj, terms };
+    }
+
+    function showReadout() {
+      if (pos < 0) {
+        readout.innerHTML = `「1マス進める」で、フィルタが左上から1マスずつ移動します。`;
+        return;
+      }
+      const { val, oi, oj, terms } = computeAt(pos);
+      readout.innerHTML =
+        `出力(${oi},${oj}) = フィルタ下の9マスの重み付き和<br>= <span class="cv-sum">${terms.length ? terms.join(" + ") : "0"}</span>` +
+        ` = <b>${val.toFixed(2)}</b>`;
+    }
+
+    function step() {
+      if (pos < OUT * OUT - 1) {
+        pos++;
+        outVals[pos] = computeAt(pos).val;
+        highlight();
+        paintOut();
+        showReadout();
+        return true;
+      }
+      return false;
+    }
+    function stopAuto() {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+        q<HTMLButtonElement>("[data-auto]")!.textContent = "自動";
+      }
+    }
+    function reset(newKind?: string) {
+      stopAuto();
+      if (newKind) kind = newKind;
+      pos = -1;
+      outVals = Array(OUT * OUT).fill(null);
+      recolorScale();
+      paintKernel();
+      highlight();
+      paintOut();
+      showReadout();
+    }
+
+    q<HTMLButtonElement>("[data-step]")!.addEventListener("click", () => {
+      stopAuto();
+      step();
+    });
+    q<HTMLButtonElement>("[data-all]")!.addEventListener("click", () => {
+      stopAuto();
+      outVals = allVals();
+      pos = OUT * OUT - 1;
+      highlight();
+      paintOut();
+      showReadout();
+    });
+    q<HTMLButtonElement>("[data-reset]")!.addEventListener("click", () => reset());
+    q<HTMLButtonElement>("[data-auto]")!.addEventListener("click", () => {
+      const btn = q<HTMLButtonElement>("[data-auto]")!;
+      if (timer !== null) return stopAuto();
+      if (pos >= OUT * OUT - 1) reset();
+      btn.textContent = "⏸ 停止";
+      timer = window.setInterval(() => {
+        if (!step()) stopAuto();
+      }, 280);
+    });
+    root.querySelectorAll<HTMLButtonElement>("[data-k]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        root.querySelectorAll<HTMLButtonElement>("[data-k]").forEach((c) =>
+          c.setAttribute("aria-pressed", String(c === chip))
+        );
+        reset(chip.dataset.k);
+      });
+    });
+
+    reset();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-conv]").forEach(setup);
+</script>
+
+<style>
+  .cv {
+    display: grid;
+    gap: 1.1rem;
+  }
+  .cv__stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem 1.3rem;
+  }
+  .cv__block {
+    display: grid;
+    gap: 0.4rem;
+    justify-items: center;
+  }
+  .cv__grid {
+    display: grid;
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    padding: 2px;
+    border-radius: 4px;
+  }
+  .cv__grid--in {
+    grid-template-columns: repeat(7, 26px);
+  }
+  .cv__grid--out {
+    grid-template-columns: repeat(5, 28px);
+  }
+  :global(.cv-cell) {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: rgba(0, 0, 0, 0.65);
+    transition:
+      outline 0.12s ease,
+      background 0.2s ease;
+  }
+  :global(.cv-cell--out) {
+    width: 28px;
+    height: 28px;
+    color: rgba(0, 0, 0, 0.78);
+    font-weight: 700;
+  }
+  :global(.cv-win) {
+    outline: 2px solid hsl(var(--era-hue) 95% 70%);
+    outline-offset: -2px;
+    z-index: 1;
+  }
+  :global(.cv-cur) {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+  }
+  .cv__op {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+  }
+  .cv__kernel {
+    display: grid;
+    grid-template-columns: repeat(3, 24px);
+    gap: 2px;
+  }
+  .cv-kcell {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    font-size: 0.66rem;
+    color: hsl(var(--era-hue) 80% 75%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .cv__arrow {
+    font-size: 1.2rem;
+    color: var(--text-dim);
+  }
+  .cv__ctrls {
+    display: grid;
+    gap: 0.7rem;
+  }
+  .cv__ctrls :global(b) {
+    color: hsl(var(--era-hue) 90% 78%);
+    font-size: 1.05em;
+  }
+  .cv__ctrls :global(.cv-sum) {
+    color: var(--text);
+  }
+</style>

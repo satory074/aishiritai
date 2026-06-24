@@ -1,0 +1,236 @@
+---
+import Demo from "@/components/Demo.astro";
+// 拡散モデルのデモ。スライダー t で前向き過程（画像→ノイズ）を連続的に見せ、
+// 「逆拡散を再生」でノイズから画像が立ち上がる様子（生成）を体感する。
+---
+
+<Demo
+  title="拡散：画像とノイズを行き来する"
+  caption="時刻 t を上げると x_t = √ᾱ·x₀ + √(1−ᾱ)·ε に従って画像が少しずつノイズへ崩れる。「逆拡散」を押すと t を T→0 へ戻し、純ノイズから絵が結晶する——これがニューラルネットに学習させている生成の正体。"
+  label="DEMO 8.1"
+>
+  <div class="df" data-diffusion>
+    <div class="df__stage">
+      <canvas class="df__canvas" data-canvas width="200" height="200" aria-label="拡散の途中経過"></canvas>
+      <div class="df__meta mono">
+        <div class="df__formula">x<sub>t</sub> = √ᾱ<sub>t</sub>·x₀ + √(1−ᾱ<sub>t</sub>)·ε</div>
+        <div class="df__stat">t = <b data-t>0</b> / 40</div>
+        <div class="df__stat">ᾱ<sub>t</sub> = <b data-abar>1.000</b> <span class="df__sub">（信号の残り）</span></div>
+        <div class="df__bar"><span class="df__bar-fill" data-bar></span></div>
+        <div class="df__phase" data-phase>クリーンな画像 x₀</div>
+      </div>
+    </div>
+
+    <div class="df__ctrls">
+      <div class="d-row">
+        <span class="d-label">時刻 t</span>
+        <input class="d-slider" data-tslider type="range" min="0" max="40" step="1" value="0" />
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-fwd type="button">▶ 順拡散（画像→ノイズ）</button>
+        <button class="d-btn" data-rev type="button">▶ 逆拡散（ノイズ→画像）</button>
+      </div>
+      <p class="d-note">逆拡散の各ステップ「乗っているノイズを当てて差し引く」をニューラルネットが担う。</p>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  const SIZE = 100,
+    T = 40;
+
+  // β スケジュール（線形）から ᾱ_t を前計算
+  const betas: number[] = [];
+  for (let t = 0; t < T; t++) betas.push(1e-4 + (0.02 - 1e-4) * (t / (T - 1)));
+  const abars: number[] = [1];
+  let acc = 1;
+  for (let t = 0; t < T; t++) {
+    acc *= 1 - betas[t];
+    abars.push(acc);
+  }
+
+  function gauss() {
+    let u = 0,
+      v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function setup(root: HTMLElement) {
+    const q = <E extends Element>(s: string) => root.querySelector(s) as E | null;
+    const canvas = q<HTMLCanvasElement>("[data-canvas]")!;
+    const ctx = canvas.getContext("2d")!;
+    const slider = q<HTMLInputElement>("[data-tslider]")!;
+
+    // ベース画像 x0 を描く（簡単な風景）
+    const off = document.createElement("canvas");
+    off.width = SIZE;
+    off.height = SIZE;
+    const octx = off.getContext("2d")!;
+    const sky = octx.createLinearGradient(0, 0, 0, SIZE);
+    sky.addColorStop(0, "#1b3a6b");
+    sky.addColorStop(1, "#8fc7e8");
+    octx.fillStyle = sky;
+    octx.fillRect(0, 0, SIZE, SIZE);
+    // 太陽
+    octx.fillStyle = "#ffd76b";
+    octx.beginPath();
+    octx.arc(70, 30, 14, 0, Math.PI * 2);
+    octx.fill();
+    // 丘
+    octx.fillStyle = "#2f7d4f";
+    octx.beginPath();
+    octx.moveTo(0, SIZE);
+    octx.quadraticCurveTo(35, 62, 60, 74);
+    octx.quadraticCurveTo(85, 86, SIZE, 66);
+    octx.lineTo(SIZE, SIZE);
+    octx.closePath();
+    octx.fill();
+    octx.fillStyle = "#245f3c";
+    octx.beginPath();
+    octx.moveTo(0, SIZE);
+    octx.quadraticCurveTo(40, 84, 70, 90);
+    octx.quadraticCurveTo(90, 94, SIZE, 88);
+    octx.lineTo(SIZE, SIZE);
+    octx.closePath();
+    octx.fill();
+
+    const x0 = octx.getImageData(0, 0, SIZE, SIZE).data;
+    // 固定ノイズ場（スライダーを滑らかに保つ）
+    const noise = new Float32Array(SIZE * SIZE * 3);
+    for (let i = 0; i < noise.length; i++) noise[i] = gauss();
+
+    const out = ctx.createImageData(SIZE, SIZE);
+    // 表示はピクセル等倍拡大
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    canvas.style.imageRendering = "auto";
+
+    let timer: number | null = null;
+
+    function draw(t: number) {
+      const ab = abars[t];
+      const sa = Math.sqrt(ab),
+        sb = Math.sqrt(1 - ab);
+      const d = out.data;
+      for (let p = 0; p < SIZE * SIZE; p++) {
+        for (let ch = 0; ch < 3; ch++) {
+          const x0n = x0[p * 4 + ch] / 255;
+          let val = sa * x0n + sb * (noise[p * 3 + ch] * 0.5 + 0.0);
+          val = Math.max(0, Math.min(1, val));
+          d[p * 4 + ch] = (val * 255) | 0;
+        }
+        d[p * 4 + 3] = 255;
+      }
+      ctx.putImageData(out, 0, 0);
+
+      q<HTMLElement>("[data-t]")!.textContent = String(t);
+      q<HTMLElement>("[data-abar]")!.textContent = ab.toFixed(3);
+      q<HTMLElement>("[data-bar]")!.style.width = `${(ab * 100).toFixed(1)}%`;
+      const phase = q<HTMLElement>("[data-phase]")!;
+      phase.textContent =
+        t === 0 ? "クリーンな画像 x₀" : t >= T ? "純粋なノイズ x_T" : "ノイズ混じり x_t";
+    }
+
+    function stop() {
+      if (timer !== null) {
+        cancelAnimationFrame(timer);
+        timer = null;
+      }
+    }
+    function animate(from: number, to: number) {
+      stop();
+      let t = from;
+      const dir = to > from ? 1 : -1;
+      const tick = () => {
+        draw(t);
+        slider.value = String(t);
+        if (t === to) {
+          timer = null;
+          return;
+        }
+        t += dir;
+        timer = requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
+    slider.addEventListener("input", () => {
+      stop();
+      draw(Number(slider.value));
+    });
+    q<HTMLButtonElement>("[data-fwd]")!.addEventListener("click", () => animate(0, T));
+    q<HTMLButtonElement>("[data-rev]")!.addEventListener("click", () => animate(T, 0));
+
+    draw(0);
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-diffusion]").forEach(setup);
+</script>
+
+<style>
+  .df {
+    display: grid;
+    gap: 1.1rem;
+  }
+  .df__stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    align-items: center;
+  }
+  .df__canvas {
+    width: 200px;
+    height: 200px;
+    image-rendering: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #000;
+  }
+  .df__meta {
+    display: grid;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    align-content: center;
+  }
+  .df__formula {
+    color: hsl(var(--era-hue) 82% 76%);
+    font-size: 0.84rem;
+  }
+  .df__stat {
+    color: var(--text-muted);
+  }
+  .df__stat b {
+    color: #fff;
+  }
+  .df__sub {
+    color: var(--text-dim);
+    font-size: 0.74rem;
+  }
+  .df__bar {
+    width: 180px;
+    height: 7px;
+    background: var(--surface-2);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .df__bar-fill {
+    display: block;
+    height: 100%;
+    width: 100%;
+    background: hsl(var(--era-hue) 85% 60%);
+    transition: width 0.08s linear;
+  }
+  .df__phase {
+    color: hsl(var(--era-hue) 85% 74%);
+    font-size: 0.8rem;
+  }
+  .df__ctrls {
+    display: grid;
+    gap: 0.7rem;
+  }
+  .df__ctrls .d-slider {
+    max-width: 320px;
+  }
+</style>

@@ -1,0 +1,94 @@
+---
+// インタラクティブ・デモの共通フレーム（図 Figure の対話版）。
+// 各デモコンポーネントはこれを import し、操作 UI を slot に入れる。
+interface Props {
+  title?: string;
+  caption?: string;
+  label?: string;
+  hint?: string;
+}
+const {
+  title,
+  caption,
+  label = "DEMO",
+  hint = "触って動かせます",
+} = Astro.props;
+---
+
+<figure class="demo not-prose">
+  <div class="demo__bar mono">
+    <span class="demo__badge">▶ {label}</span>
+    {title && <span class="demo__title">{title}</span>}
+    <span class="demo__hint">{hint}</span>
+  </div>
+  <div class="demo__frame">
+    <slot />
+  </div>
+  {
+    caption && (
+      <figcaption class="demo__cap">
+        <span class="demo__cap-text">{caption}</span>
+      </figcaption>
+    )
+  }
+</figure>
+
+<style>
+  .demo {
+    margin: 1.9rem 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--bg-soft);
+  }
+  .demo__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.72rem;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--era-hue) 60% 50% / 0.16),
+      hsl(var(--era-hue) 60% 50% / 0.02)
+    );
+    border-bottom: 1px solid var(--border);
+  }
+  .demo__badge {
+    flex: none;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: hsl(var(--era-hue) 90% 72%);
+    text-shadow: 0 0 8px hsl(var(--era-hue) 90% 60% / 0.5);
+  }
+  .demo__title {
+    color: #fff;
+    font-weight: 500;
+  }
+  .demo__hint {
+    margin-left: auto;
+    flex: none;
+    color: var(--text-dim);
+    font-size: 0.68rem;
+  }
+  .demo__frame {
+    padding: 1.2rem 1rem;
+    background:
+      radial-gradient(
+        120% 120% at 50% 0%,
+        hsl(var(--era-hue) 60% 50% / 0.05),
+        transparent 60%
+      ),
+      var(--bg-soft);
+  }
+  .demo__cap {
+    padding: 0 1rem 0.95rem;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+  }
+  .demo__cap-text::before {
+    content: "▸ ";
+    color: hsl(var(--era-hue) 85% 66%);
+  }
+</style>

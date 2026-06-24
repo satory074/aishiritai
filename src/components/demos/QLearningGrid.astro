@@ -1,0 +1,285 @@
+---
+import Demo from "@/components/Demo.astro";
+// 強化学習（Q学習）のデモ。エージェントが試行錯誤でゴールへの道を学ぶ。
+// 各マスの色＝価値、矢印＝学習された方策。エピソードを重ねると道が組み上がる。
+---
+
+<Demo
+  title="強化学習：試行錯誤でゴールへの道を学ぶ"
+  caption="エージェントは報酬（ゴール +1・落とし穴 −1・1歩 −0.03）だけを頼りに、どのマスでどう動くべきかを Q学習で更新する。エピソードを重ねると、各マスの矢印（方策）がゴールへ向かって整列し、色（価値）がゴールから染み出す。誰も正解を教えていない。"
+  label="DEMO 6.1"
+>
+  <div class="ql" data-qlearn>
+    <div class="ql__grid" data-grid></div>
+    <div class="ql__ctrls">
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-ep type="button">1エピソード</button>
+        <button class="d-btn" data-ep25 type="button">25回</button>
+        <button class="d-btn" data-auto type="button">▶ 自動</button>
+        <button class="d-btn" data-reset type="button">リセット</button>
+      </div>
+      <div class="d-panel d-readout" data-readout></div>
+      <p class="d-note">
+        <span class="ql-k ql-k--goal">■</span> ゴール(+1) &nbsp;
+        <span class="ql-k ql-k--pit">■</span> 落とし穴(−1) &nbsp;
+        <span class="ql-k ql-k--wall">■</span> 壁
+      </p>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  const H = 6,
+    W = 6;
+  const START = { r: 5, c: 0 };
+  const GOAL = { r: 0, c: 5 };
+  const WALLS = new Set(["1,2", "2,2", "3,2"]);
+  const PITS = new Set(["1,4", "4,3"]);
+  const key = (r: number, c: number) => `${r},${c}`;
+  const isWall = (r: number, c: number) => WALLS.has(key(r, c));
+  const isGoal = (r: number, c: number) => r === GOAL.r && c === GOAL.c;
+  const isPit = (r: number, c: number) => PITS.has(key(r, c));
+  const isTerminal = (r: number, c: number) => isGoal(r, c) || isPit(r, c);
+  // 0=上,1=右,2=下,3=左
+  const DR = [-1, 0, 1, 0],
+    DC = [0, 1, 0, -1];
+  const ARROW = ["↑", "→", "↓", "←"];
+  const ALPHA = 0.5,
+    GAMMA = 0.95;
+
+  function setup(root: HTMLElement) {
+    const q = <T extends Element>(s: string) => root.querySelector(s) as T | null;
+    const gridEl = q<HTMLElement>("[data-grid]")!;
+    const readout = q<HTMLElement>("[data-readout]")!;
+
+    let Q: number[][][];
+    let episodes: number,
+      eps: number,
+      timer: number | null = null,
+      lastReturn = 0,
+      recent: boolean[] = [];
+
+    function reset() {
+      Q = Array.from({ length: H }, () =>
+        Array.from({ length: W }, () => [0, 0, 0, 0])
+      );
+      episodes = 0;
+      eps = 1;
+      lastReturn = 0;
+      recent = [];
+      stopAuto();
+      buildGrid();
+      render();
+    }
+
+    function buildGrid() {
+      gridEl.innerHTML = "";
+      gridEl.style.gridTemplateColumns = `repeat(${W}, 38px)`;
+      for (let r = 0; r < H; r++)
+        for (let c = 0; c < W; c++) {
+          const cell = document.createElement("div");
+          cell.className = "ql-cell";
+          cell.dataset.r = String(r);
+          cell.dataset.c = String(c);
+          if (isWall(r, c)) cell.classList.add("ql-cell--wall");
+          if (isGoal(r, c)) cell.classList.add("ql-cell--goal");
+          if (isPit(r, c)) cell.classList.add("ql-cell--pit");
+          gridEl.appendChild(cell);
+        }
+    }
+
+    function step(r: number, c: number, a: number) {
+      let nr = r + DR[a],
+        nc = c + DC[a];
+      if (nr < 0 || nr >= H || nc < 0 || nc >= W || isWall(nr, nc)) {
+        nr = r;
+        nc = c;
+      }
+      let reward = -0.03;
+      if (isGoal(nr, nc)) reward = 1;
+      else if (isPit(nr, nc)) reward = -1;
+      return { nr, nc, reward };
+    }
+
+    function argmax(arr: number[]) {
+      let bi = 0;
+      for (let i = 1; i < arr.length; i++) if (arr[i] > arr[bi]) bi = i;
+      return bi;
+    }
+
+    function runEpisode() {
+      let { r, c } = START;
+      let steps = 0,
+        ret = 0;
+      while (!isTerminal(r, c) && steps < 80) {
+        const a = Math.random() < eps ? (Math.random() * 4) | 0 : argmax(Q[r][c]);
+        const { nr, nc, reward } = step(r, c, a);
+        const target =
+          reward + (isTerminal(nr, nc) ? 0 : GAMMA * Math.max(...Q[nr][nc]));
+        Q[r][c][a] += ALPHA * (target - Q[r][c][a]);
+        ret += reward;
+        r = nr;
+        c = nc;
+        steps++;
+      }
+      episodes++;
+      lastReturn = ret;
+      const won = isGoal(r, c);
+      recent.push(won);
+      if (recent.length > 20) recent.shift();
+      eps = Math.max(0.05, eps * 0.97);
+    }
+
+    function vColor(v: number) {
+      if (v >= 0) {
+        const n = Math.min(1, v);
+        return `hsl(var(--era-hue) 80% ${(10 + n * 50).toFixed(0)}%)`;
+      }
+      const n = Math.min(1, -v);
+      return `hsl(0 65% ${(14 + n * 22).toFixed(0)}%)`;
+    }
+
+    function render() {
+      for (let r = 0; r < H; r++)
+        for (let c = 0; c < W; c++) {
+          const cell = gridEl.children[r * W + c] as HTMLElement;
+          if (isWall(r, c)) continue;
+          if (isGoal(r, c)) {
+            cell.innerHTML = `<span class="ql-mark">+1</span>`;
+            continue;
+          }
+          if (isPit(r, c)) {
+            cell.innerHTML = `<span class="ql-mark">−1</span>`;
+            continue;
+          }
+          const qv = Q[r][c];
+          const v = Math.max(...qv);
+          const visited = qv.some((x) => x !== 0);
+          cell.style.background = visited ? vColor(v) : "var(--surface)";
+          cell.innerHTML = visited
+            ? `<span class="ql-arrow">${ARROW[argmax(qv)]}</span>`
+            : "";
+          if (r === START.r && c === START.c)
+            cell.innerHTML += `<span class="ql-start">S</span>`;
+        }
+      const succ = recent.length
+        ? Math.round((recent.filter(Boolean).length / recent.length) * 100)
+        : 0;
+      readout.innerHTML =
+        `エピソード: <b>${episodes}</b> &nbsp; 探索率 ε: <b>${eps.toFixed(2)}</b><br>` +
+        `直近の成功率: <b>${succ}%</b> &nbsp; 前回リターン: <b>${lastReturn.toFixed(2)}</b>`;
+    }
+
+    function many(n: number) {
+      for (let i = 0; i < n; i++) runEpisode();
+      render();
+    }
+    function stopAuto() {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+        const b = q<HTMLButtonElement>("[data-auto]");
+        if (b) b.textContent = "▶ 自動";
+      }
+    }
+
+    q<HTMLButtonElement>("[data-ep]")!.addEventListener("click", () => {
+      stopAuto();
+      many(1);
+    });
+    q<HTMLButtonElement>("[data-ep25]")!.addEventListener("click", () => {
+      stopAuto();
+      many(25);
+    });
+    q<HTMLButtonElement>("[data-reset]")!.addEventListener("click", reset);
+    q<HTMLButtonElement>("[data-auto]")!.addEventListener("click", () => {
+      const btn = q<HTMLButtonElement>("[data-auto]")!;
+      if (timer !== null) return stopAuto();
+      btn.textContent = "⏸ 停止";
+      timer = window.setInterval(() => {
+        runEpisode();
+        render();
+        if (episodes >= 300) stopAuto();
+      }, 60);
+    });
+
+    reset();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-qlearn]").forEach(setup);
+</script>
+
+<style>
+  .ql {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    align-items: flex-start;
+  }
+  .ql__grid {
+    display: grid;
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    padding: 2px;
+    border-radius: 6px;
+  }
+  :global(.ql-cell) {
+    width: 38px;
+    height: 38px;
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: var(--surface);
+    transition: background 0.18s ease;
+  }
+  :global(.ql-cell--wall) {
+    background: #05070c !important;
+  }
+  :global(.ql-cell--goal) {
+    background: hsl(145 70% 38%) !important;
+  }
+  :global(.ql-cell--pit) {
+    background: hsl(0 65% 42%) !important;
+  }
+  :global(.ql-arrow) {
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+  }
+  :global(.ql-mark) {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  :global(.ql-start) {
+    position: absolute;
+    left: 2px;
+    top: 1px;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .ql__ctrls {
+    display: grid;
+    gap: 0.7rem;
+    min-width: 14rem;
+    flex: 1;
+  }
+  .ql__ctrls :global(b) {
+    color: #fff;
+  }
+  .ql-k {
+    font-size: 0.9em;
+  }
+  .ql-k--goal {
+    color: hsl(145 70% 50%);
+  }
+  .ql-k--pit {
+    color: hsl(0 70% 55%);
+  }
+  .ql-k--wall {
+    color: #2a3550;
+  }
+</style>

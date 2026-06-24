@@ -1,0 +1,305 @@
+---
+import Demo from "@/components/Demo.astro";
+// McCulloch–Pitts 形式ニューロンを触って論理ゲートを組むデモ。
+// Σ = w1·x1 + w2·x2 が しきい値 θ 以上なら発火 y=1。
+---
+
+<Demo
+  title="形式ニューロンで論理ゲートを作る"
+  caption="重み w としきい値 θ を変えるだけで、同じニューロンが AND・OR・NAND に化ける。右下の真理値表が現在の設定でのゲートの全挙動。これが「重みで計算が決まる」ということ。"
+  label="DEMO 1.1"
+>
+  <div class="np" data-neuron>
+    <svg class="np__svg" viewBox="0 0 380 210" role="img" aria-label="2入力ニューロン">
+      <!-- edges -->
+      <line data-edge="1" class="np-edge" x1="58" y1="56" x2="190" y2="96"></line>
+      <line data-edge="2" class="np-edge" x1="58" y1="154" x2="190" y2="120"></line>
+      <!-- input nodes -->
+      <circle data-in="1" class="np-node np-in" cx="40" cy="56" r="18"></circle>
+      <circle data-in="2" class="np-node np-in" cx="40" cy="154" r="18"></circle>
+      <text class="np-t" x="40" y="56">x₁</text>
+      <text class="np-t" x="40" y="154">x₂</text>
+      <!-- weight labels -->
+      <text data-wlab="1" class="np-w" x="120" y="62">w₁</text>
+      <text data-wlab="2" class="np-w" x="120" y="146">w₂</text>
+      <!-- sum -->
+      <circle class="np-sum" cx="214" cy="108" r="30"></circle>
+      <text data-sum class="np-t np-t--big" x="214" y="108">Σ</text>
+      <!-- step -->
+      <line class="np-edge" x1="244" y1="108" x2="280" y2="108"></line>
+      <rect class="np-step" x="280" y="84" width="50" height="48" rx="7"></rect>
+      <text class="np-t" x="305" y="103" style="font-size:13px">θ=<tspan data-thlab>0</tspan></text>
+      <text class="np-sub" x="305" y="120">step</text>
+      <!-- output -->
+      <line data-edge="out" class="np-edge np-edge--out" x1="330" y1="108" x2="356" y2="108"></line>
+      <text data-out class="np-t np-out" x="370" y="108">0</text>
+    </svg>
+
+    <div class="np__ctrls">
+      <div class="d-row" role="group" aria-label="プリセット">
+        <span class="d-label">プリセット:</span>
+        <button class="d-btn" data-preset="and" type="button">AND</button>
+        <button class="d-btn" data-preset="or" type="button">OR</button>
+        <button class="d-btn" data-preset="nand" type="button">NAND</button>
+      </div>
+
+      <div class="d-row">
+        <span class="d-label">入力:</span>
+        <button class="d-chip" data-x="1" type="button" aria-pressed="false">x₁ = 0</button>
+        <button class="d-chip" data-x="2" type="button" aria-pressed="false">x₂ = 0</button>
+      </div>
+
+      <div class="d-row">
+        <span class="d-label">w₁</span>
+        <input class="d-slider" data-w="1" type="range" min="-2" max="2" step="1" value="1" />
+        <span class="d-val" data-wval="1">+1</span>
+        <span class="d-label" style="margin-left:.6rem">w₂</span>
+        <input class="d-slider" data-w="2" type="range" min="-2" max="2" step="1" value="1" />
+        <span class="d-val" data-wval="2">+1</span>
+      </div>
+      <div class="d-row">
+        <span class="d-label">しきい値 θ</span>
+        <input class="d-slider" data-th type="range" min="-3" max="3" step="1" value="2" />
+        <span class="d-val" data-thval>+2</span>
+      </div>
+
+      <div class="d-panel np__readout d-readout" data-readout></div>
+
+      <table class="np__truth">
+        <thead>
+          <tr><th>x₁</th><th>x₂</th><th>Σ</th><th>y</th></tr>
+        </thead>
+        <tbody data-truth></tbody>
+      </table>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { x: [0, 0], w: [1, 1], th: 2 };
+
+    const sumText = get<SVGTextElement>("[data-sum]");
+    const outText = get<SVGTextElement>("[data-out]");
+    const thLab = get<SVGTSpanElement>("[data-thlab]");
+    const readout = get<HTMLElement>("[data-readout]");
+    const truth = get<HTMLElement>("[data-truth]");
+
+    function render() {
+      const x1 = state.x[0],
+        x2 = state.x[1];
+      const sum = state.w[0] * x1 + state.w[1] * x2;
+      const y = sum >= state.th ? 1 : 0;
+
+      if (sumText) sumText.textContent = String(sum);
+      if (outText) {
+        outText.textContent = String(y);
+        outText.classList.toggle("np-out--on", y === 1);
+      }
+      if (thLab) thLab.textContent = sign(state.th);
+
+      // SVG の活性表示
+      [1, 2].forEach((i) => {
+        const node = get<SVGCircleElement>(`[data-in="${i}"]`);
+        const edge = get<SVGLineElement>(`[data-edge="${i}"]`);
+        const on = state.x[i - 1] === 1;
+        node?.classList.toggle("np-in--on", on);
+        edge?.classList.toggle("np-edge--active", on && state.w[i - 1] !== 0);
+        edge?.classList.toggle("np-edge--neg", on && state.w[i - 1] < 0);
+        const wlab = get<SVGTextElement>(`[data-wlab="${i}"]`);
+        if (wlab) wlab.textContent = `w${i === 1 ? "₁" : "₂"}=${sign(state.w[i - 1])}`;
+      });
+      get<SVGLineElement>('[data-edge="out"]')?.classList.toggle("np-edge--active", y === 1);
+
+      // 入力チップ
+      [1, 2].forEach((i) => {
+        const chip = get<HTMLButtonElement>(`[data-x="${i}"]`);
+        if (chip) {
+          chip.setAttribute("aria-pressed", String(state.x[i - 1] === 1));
+          chip.textContent = `x${i === 1 ? "₁" : "₂"} = ${state.x[i - 1]}`;
+        }
+      });
+      // スライダー値
+      get<HTMLElement>('[data-wval="1"]')!.textContent = sign(state.w[0]);
+      get<HTMLElement>('[data-wval="2"]')!.textContent = sign(state.w[1]);
+      get<HTMLElement>("[data-thval]")!.textContent = sign(state.th);
+
+      if (readout) {
+        readout.innerHTML =
+          `Σ = (${sign(state.w[0])})·${x1} + (${sign(state.w[1])})·${x2} = <b>${sum}</b>` +
+          ` &nbsp;→&nbsp; ${sum} ${sum >= state.th ? "≥" : "<"} ${state.th} &nbsp;→&nbsp; ` +
+          (y === 1
+            ? `<span class="d-fire d-fire--on">発火 y=1</span>`
+            : `<span class="d-fire d-fire--off">非発火 y=0</span>`);
+      }
+
+      // 真理値表
+      if (truth) {
+        const rows = [
+          [0, 0],
+          [0, 1],
+          [1, 0],
+          [1, 1],
+        ];
+        truth.innerHTML = rows
+          .map(([a, b]) => {
+            const s = state.w[0] * a + state.w[1] * b;
+            const yy = s >= state.th ? 1 : 0;
+            const cur = a === x1 && b === x2 ? " np__truth--cur" : "";
+            return `<tr class="${yy ? "np__truth--fire" : ""}${cur}"><td>${a}</td><td>${b}</td><td>${s}</td><td>${yy}</td></tr>`;
+          })
+          .join("");
+      }
+    }
+
+    root.querySelectorAll<HTMLButtonElement>("[data-x]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const i = Number(chip.dataset.x) - 1;
+        state.x[i] = state.x[i] ? 0 : 1;
+        render();
+      });
+    });
+    root.querySelectorAll<HTMLInputElement>("[data-w]").forEach((sl) => {
+      sl.addEventListener("input", () => {
+        state.w[Number(sl.dataset.w) - 1] = Number(sl.value);
+        render();
+      });
+    });
+    get<HTMLInputElement>("[data-th]")?.addEventListener("input", (e) => {
+      state.th = Number((e.target as HTMLInputElement).value);
+      render();
+    });
+    root.querySelectorAll<HTMLButtonElement>("[data-preset]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const p = btn.dataset.preset;
+        if (p === "and") state.w = [1, 1], (state.th = 2);
+        else if (p === "or") state.w = [1, 1], (state.th = 1);
+        else if (p === "nand") state.w = [-1, -1], (state.th = -1);
+        // スライダーUIへ反映
+        get<HTMLInputElement>('[data-w="1"]')!.value = String(state.w[0]);
+        get<HTMLInputElement>('[data-w="2"]')!.value = String(state.w[1]);
+        get<HTMLInputElement>("[data-th]")!.value = String(state.th);
+        render();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-neuron]").forEach(setup);
+</script>
+
+<style>
+  .np {
+    display: grid;
+    gap: 1.1rem;
+  }
+  .np__svg {
+    width: 100%;
+    max-width: 400px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .np-edge {
+    stroke: var(--border);
+    stroke-width: 2;
+    transition:
+      stroke 0.2s ease,
+      stroke-width 0.2s ease;
+  }
+  .np-edge--active {
+    stroke: hsl(var(--era-hue) 90% 62%);
+    stroke-width: 3;
+  }
+  .np-edge--neg {
+    stroke: var(--red);
+  }
+  .np-node {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 50% 50%);
+    stroke-width: 2;
+    transition: all 0.2s ease;
+  }
+  .np-in--on {
+    fill: hsl(var(--era-hue) 70% 40%);
+    stroke: hsl(var(--era-hue) 90% 66%);
+  }
+  .np-sum {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2.5;
+  }
+  .np-step {
+    fill: hsl(var(--era-hue) 60% 50% / 0.12);
+    stroke: hsl(var(--era-hue) 80% 60%);
+    stroke-width: 2;
+  }
+  .np-t {
+    fill: var(--text);
+    font-size: 15px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .np-t--big {
+    fill: #fff;
+    font-size: 22px;
+  }
+  .np-w {
+    fill: var(--text-muted);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .np-sub {
+    fill: var(--text-dim);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+  .np-out {
+    fill: var(--text-dim);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .np-out--on {
+    fill: var(--green);
+  }
+  .np__readout {
+    font-size: 0.84rem;
+    line-height: 1.7;
+  }
+  .np__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+  }
+  .np__truth {
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    width: max-content;
+  }
+  .np__truth th,
+  .np__truth td {
+    border: 1px solid var(--border);
+    padding: 0.22rem 0.85rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .np__truth th {
+    color: var(--text-dim);
+    font-weight: 500;
+    background: var(--surface);
+  }
+  .np__truth--fire td {
+    color: var(--text);
+  }
+  .np__truth--fire td:last-child {
+    color: var(--green);
+    font-weight: 700;
+  }
+  .np__truth--cur td {
+    background: hsl(var(--era-hue) 70% 50% / 0.16);
+    box-shadow: inset 0 0 0 1px hsl(var(--era-hue) 85% 60%);
+  }
+</style>

@@ -1,0 +1,261 @@
+---
+import Demo from "@/components/Demo.astro";
+// パーセプトロンが直線の境界を「学習」する様子と、XOR では永遠に収束しない様子を見るデモ。
+---
+
+<Demo
+  title="パーセプトロンの学習と XOR の壁"
+  caption="「線形分離可能」を選ぶと数十ステップで誤分類が 0 になり境界が落ち着く。「XOR」に切り替えると、どれだけ回しても誤分類が消えない——単層パーセプトロンが直線しか引けないことの実演。"
+  label="DEMO 2.1"
+>
+  <div class="pl" data-perc>
+    <svg class="pl__svg" viewBox="0 0 300 300" role="img" aria-label="2次元平面上の学習">
+      <g class="pl__axes">
+        <line x1="150" y1="8" x2="150" y2="292"></line>
+        <line x1="8" y1="150" x2="292" y2="150"></line>
+      </g>
+      <g data-shade></g>
+      <line data-line class="pl__line" x1="0" y1="0" x2="0" y2="0"></line>
+      <g data-points></g>
+    </svg>
+
+    <div class="pl__ctrls">
+      <div class="d-row" role="group" aria-label="データセット">
+        <span class="d-label">データ:</span>
+        <button class="d-chip" data-data="sep" type="button" aria-pressed="true">線形分離可能</button>
+        <button class="d-chip" data-data="xor" type="button" aria-pressed="false">XOR</button>
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-step type="button">1ステップ学習</button>
+        <button class="d-btn" data-auto type="button">▶ 自動</button>
+        <button class="d-btn" data-reset type="button">リセット</button>
+      </div>
+      <div class="d-panel d-readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Pt = { x: number; y: number; label: 1 | -1 };
+
+  const SEP: Pt[] = [
+    { x: 0.5, y: 0.6, label: 1 }, { x: 0.7, y: 0.3, label: 1 },
+    { x: 0.35, y: 0.85, label: 1 }, { x: 0.8, y: 0.7, label: 1 },
+    { x: 0.55, y: 0.35, label: 1 }, { x: 0.25, y: 0.45, label: 1 },
+    { x: -0.5, y: -0.5, label: -1 }, { x: -0.7, y: -0.2, label: -1 },
+    { x: -0.35, y: -0.75, label: -1 }, { x: -0.8, y: -0.6, label: -1 },
+    { x: -0.45, y: -0.35, label: -1 }, { x: -0.2, y: -0.55, label: -1 },
+  ];
+  const XOR: Pt[] = [
+    { x: 0.6, y: 0.6, label: 1 }, { x: 0.45, y: 0.78, label: 1 }, { x: 0.78, y: 0.5, label: 1 },
+    { x: -0.6, y: -0.6, label: 1 }, { x: -0.5, y: -0.78, label: 1 }, { x: -0.78, y: -0.5, label: 1 },
+    { x: -0.6, y: 0.6, label: -1 }, { x: -0.45, y: 0.78, label: -1 }, { x: -0.78, y: 0.5, label: -1 },
+    { x: 0.6, y: -0.6, label: -1 }, { x: 0.5, y: -0.78, label: -1 }, { x: 0.78, y: -0.5, label: -1 },
+  ];
+
+  const LR = 0.25,
+    MAXIT = 300,
+    R = 1.2;
+  const sx = (x: number) => ((x + R) / (2 * R)) * 300;
+  const sy = (y: number) => ((R - y) / (2 * R)) * 300;
+
+  function setup(root: HTMLElement) {
+    const q = <T extends Element>(s: string) => root.querySelector(s) as T | null;
+    const ptsG = q<SVGGElement>("[data-points]")!;
+    const shadeG = q<SVGGElement>("[data-shade]")!;
+    const lineEl = q<SVGLineElement>("[data-line]")!;
+    const readout = q<HTMLElement>("[data-readout]")!;
+
+    let data: Pt[] = SEP;
+    let w = [0, 0],
+      b = 0,
+      iter = 0,
+      timer: number | null = null;
+
+    const predict = (p: Pt) => (w[0] * p.x + w[1] * p.y + b >= 0 ? 1 : -1);
+
+    function drawPoints() {
+      ptsG.innerHTML = data
+        .map((p) => {
+          const bad = predict(p) !== p.label;
+          const cls = `pl-pt pl-pt--${p.label === 1 ? "pos" : "neg"}${bad ? " pl-pt--bad" : ""}`;
+          return `<circle class="${cls}" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="6"></circle>`;
+        })
+        .join("");
+    }
+
+    function drawLine() {
+      // w0*x + w1*y + b = 0
+      if (Math.abs(w[0]) < 1e-9 && Math.abs(w[1]) < 1e-9) {
+        lineEl.style.opacity = "0";
+        shadeG.innerHTML = "";
+        return;
+      }
+      lineEl.style.opacity = "1";
+      let x1 = -R, x2 = R, y1, y2;
+      if (Math.abs(w[1]) > 1e-6) {
+        y1 = -(w[0] * x1 + b) / w[1];
+        y2 = -(w[0] * x2 + b) / w[1];
+      } else {
+        const xv = -b / w[0];
+        x1 = x2 = xv;
+        y1 = -R;
+        y2 = R;
+      }
+      lineEl.setAttribute("x1", String(sx(x1)));
+      lineEl.setAttribute("y1", String(sy(y1)));
+      lineEl.setAttribute("x2", String(sx(x2)));
+      lineEl.setAttribute("y2", String(sy(y2)));
+      // 正側を淡く塗る（法線 w の向き）
+      const nx = w[0], ny = w[1], nlen = Math.hypot(nx, ny) || 1;
+      shadeG.innerHTML = `<line class="pl-shade" x1="${sx((x1+x2)/2)}" y1="${sy((y1+y2)/2)}" x2="${sx((x1+x2)/2)+ (nx/nlen)*46}" y2="${sy((y1+y2)/2) - (ny/nlen)*46}" />`;
+    }
+
+    function miscount() {
+      return data.filter((p) => predict(p) !== p.label).length;
+    }
+
+    function render() {
+      drawLine();
+      drawPoints();
+      const m = miscount();
+      const done = m === 0;
+      const stuck = iter >= MAXIT;
+      readout.innerHTML =
+        `反復: <b>${iter}</b> &nbsp; 誤分類: <b class="${done ? "pl-ok" : "pl-bad"}">${m}</b> / ${data.length}` +
+        (done
+          ? ` &nbsp;→&nbsp; <span class="d-fire d-fire--on">分離成功 ✓</span>`
+          : stuck
+            ? ` &nbsp;→&nbsp; <span class="pl-warn">収束せず（直線では分離不可）</span>`
+            : "");
+    }
+
+    function step(): boolean {
+      const wrong = data.filter((p) => predict(p) !== p.label);
+      if (wrong.length === 0 || iter >= MAXIT) return false;
+      const p = wrong[iter % wrong.length];
+      w[0] += LR * p.label * p.x;
+      w[1] += LR * p.label * p.y;
+      b += LR * p.label;
+      iter++;
+      return true;
+    }
+
+    function stopAuto() {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+        q<HTMLButtonElement>("[data-auto]")!.textContent = "▶ 自動";
+      }
+    }
+    function reset() {
+      stopAuto();
+      w = [0, 0];
+      b = 0;
+      iter = 0;
+      render();
+    }
+
+    q<HTMLButtonElement>("[data-step]")!.addEventListener("click", () => {
+      stopAuto();
+      step();
+      render();
+    });
+    q<HTMLButtonElement>("[data-reset]")!.addEventListener("click", reset);
+    q<HTMLButtonElement>("[data-auto]")!.addEventListener("click", () => {
+      const btn = q<HTMLButtonElement>("[data-auto]")!;
+      if (timer !== null) {
+        stopAuto();
+        return;
+      }
+      btn.textContent = "⏸ 停止";
+      timer = window.setInterval(() => {
+        const cont = step();
+        render();
+        if (!cont) stopAuto();
+      }, 220);
+    });
+    root.querySelectorAll<HTMLButtonElement>("[data-data]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        root.querySelectorAll<HTMLButtonElement>("[data-data]").forEach((c) =>
+          c.setAttribute("aria-pressed", String(c === chip))
+        );
+        data = chip.dataset.data === "xor" ? XOR : SEP;
+        reset();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-perc]").forEach(setup);
+</script>
+
+<style>
+  .pl {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 300px) 1fr;
+    align-items: start;
+  }
+  @media (max-width: 560px) {
+    .pl {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+  }
+  .pl__svg {
+    width: 100%;
+    max-width: 300px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .pl__axes line {
+    stroke: var(--border);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+  .pl__line {
+    stroke: hsl(var(--era-hue) 90% 64%);
+    stroke-width: 2.5;
+    transition: all 0.18s ease;
+  }
+  .pl__ctrls {
+    display: grid;
+    gap: 0.7rem;
+    align-content: start;
+  }
+  :global(.pl-pt) {
+    stroke: var(--bg);
+    stroke-width: 1.5;
+  }
+  :global(.pl-pt--pos) {
+    fill: hsl(var(--era-hue) 90% 64%);
+  }
+  :global(.pl-pt--neg) {
+    fill: var(--text-dim);
+  }
+  :global(.pl-pt--bad) {
+    stroke: var(--red);
+    stroke-width: 2.5;
+  }
+  :global(.pl-shade) {
+    stroke: hsl(var(--era-hue) 90% 64% / 0.5);
+    stroke-width: 1.5;
+    marker-end: none;
+  }
+  .pl__ctrls :global(.pl-ok) {
+    color: var(--green);
+  }
+  .pl__ctrls :global(.pl-bad) {
+    color: hsl(var(--era-hue) 90% 74%);
+  }
+  .pl__ctrls :global(.pl-warn) {
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .pl__ctrls :global(b) {
+    color: #fff;
+  }
+</style>

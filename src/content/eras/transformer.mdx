@@ -10,6 +10,7 @@ people: ["vaswani", "radford", "bengio"]
 ---
 
 import TfAttention from "@/components/figures/TfAttention.astro";
+import AttentionDemo from "@/components/demos/AttentionDemo.astro";
 
 前章で、機械は囲碁という意思決定の頂を越えました。認識（画像）と意思決定（強化学習）の次に残された大きな問いは——**言語**です。
 だが言語は厄介でした。単語の意味は前後の文脈で変わり、依存関係は文をまたいで遠くまで伸びる。
@@ -78,6 +79,11 @@ $$
 <Figure caption="自己注意：query が系列内の全 key との相性 αᵢ を重みに、対応する value を加重平均して情報を集める。線の太さが注意の重みに対応する。" label="FIG 7.1">
   <TfAttention />
 </Figure>
+
+実際にクエリ語を切り替えて、注意がどこへ向かうかを見てみましょう。代名詞「it」が中身（cat）を見ること、
+そして温度 $T$ を下げると注意が一点へ尖ることが、次の節の $\sqrt{d_k}$ の話につながります。
+
+<AttentionDemo />
 
 ### なぜ √dₖ で割るのか
 

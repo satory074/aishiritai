@@ -1,0 +1,221 @@
+---
+import Demo from "@/components/Demo.astro";
+// 勾配降下を1次元の損失曲線で体感するデモ。学習率 η の大小で
+// 収束・振動・局所解への停留が切り替わる。曲線をクリックで初期値を置ける。
+---
+
+<Demo
+  title="勾配降下と学習率 η"
+  caption="ボールは損失 L(w) の傾きを下る。η が小さいとゆっくり、ちょうど良いと谷へ収束、大きすぎると左右に飛び跳ねて発散する。曲線をクリックして別の谷から始めると、近い谷（局所解）に落ち着くことも——深層学習が向き合う非凸最適化の縮図。"
+  label="DEMO 3.1"
+>
+  <div class="gd" data-grad>
+    <svg class="gd__svg" viewBox="0 0 340 220" role="img" aria-label="損失曲線と勾配降下">
+      <path data-curve class="gd__curve" d=""></path>
+      <g data-trail></g>
+      <line data-tangent class="gd__tangent" x1="0" y1="0" x2="0" y2="0"></line>
+      <circle data-ball class="gd__ball" cx="0" cy="0" r="6"></circle>
+    </svg>
+
+    <div class="gd__ctrls">
+      <div class="d-row">
+        <span class="d-label">学習率 η</span>
+        <input class="d-slider" data-eta type="range" min="0.02" max="2" step="0.02" value="0.3" />
+        <span class="d-val" data-etaval>0.30</span>
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-step type="button">1ステップ降下</button>
+        <button class="d-btn" data-auto type="button">▶ 自動</button>
+        <button class="d-btn" data-reset type="button">リセット</button>
+      </div>
+      <div class="d-panel d-readout" data-readout></div>
+      <p class="d-note">曲線を <b>クリック</b> すると、その位置からスタートできます。</p>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  const WMIN = -5,
+    WMAX = 5,
+    PAD = 14,
+    TOP = 14,
+    BOT = 16,
+    W = 340,
+    H = 220;
+  const L = (w: number) => 0.15 * w * w - Math.cos(1.7 * w);
+  const grad = (w: number) => (L(w + 1e-3) - L(w - 1e-3)) / 2e-3;
+  const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
+  // y スケール用に L の範囲を求める
+  let LMIN = Infinity,
+    LMAX = -Infinity;
+  for (let i = 0; i <= 400; i++) {
+    const w = WMIN + (i / 400) * (WMAX - WMIN);
+    const v = L(w);
+    if (v < LMIN) LMIN = v;
+    if (v > LMAX) LMAX = v;
+  }
+  const px = (w: number) => PAD + ((w - WMIN) / (WMAX - WMIN)) * (W - 2 * PAD);
+  const py = (l: number) => TOP + (1 - (l - LMIN) / (LMAX - LMIN)) * (H - TOP - BOT);
+  const wAt = (sx: number) =>
+    clamp(WMIN + ((sx - PAD) / (W - 2 * PAD)) * (WMAX - WMIN), WMIN, WMAX);
+
+  function setup(root: HTMLElement) {
+    const q = <T extends Element>(s: string) => root.querySelector(s) as T | null;
+    const ball = q<SVGCircleElement>("[data-ball]")!;
+    const tangent = q<SVGLineElement>("[data-tangent]")!;
+    const trail = q<SVGGElement>("[data-trail]")!;
+    const readout = q<HTMLElement>("[data-readout]")!;
+    const svg = q<SVGSVGElement>("svg")!;
+
+    let w = -4.2,
+      eta = 0.3,
+      steps = 0,
+      timer: number | null = null;
+    let path: number[] = [w];
+
+    // 損失曲線を一度だけ描く
+    let d = "";
+    for (let i = 0; i <= 240; i++) {
+      const ww = WMIN + (i / 240) * (WMAX - WMIN);
+      d += `${i === 0 ? "M" : "L"}${px(ww).toFixed(1)} ${py(L(ww)).toFixed(1)} `;
+    }
+    q<SVGPathElement>("[data-curve]")!.setAttribute("d", d);
+
+    function render() {
+      const g = grad(w);
+      const l = L(w);
+      ball.setAttribute("cx", String(px(w)));
+      ball.setAttribute("cy", String(py(l)));
+      // 接線（傾き）。dL/dw を画面比でスケール
+      const sxw = (W - 2 * PAD) / (WMAX - WMIN);
+      const syl = (H - TOP - BOT) / (LMAX - LMIN);
+      const slope = -g * (syl / sxw); // 画面座標での傾き（y下向き補正）
+      const dx = 26;
+      tangent.setAttribute("x1", String(px(w) - dx));
+      tangent.setAttribute("y1", String(py(l) - slope * dx));
+      tangent.setAttribute("x2", String(px(w) + dx));
+      tangent.setAttribute("y2", String(py(l) + slope * dx));
+      // 軌跡
+      trail.innerHTML = path
+        .slice(-40)
+        .map((pw, i, a) => {
+          const op = (0.15 + 0.85 * (i / Math.max(1, a.length - 1))).toFixed(2);
+          return `<circle class="gd__trail" cx="${px(pw).toFixed(1)}" cy="${py(L(pw)).toFixed(1)}" r="3" opacity="${op}"></circle>`;
+        })
+        .join("");
+
+      const settled = Math.abs(g) < 5e-3;
+      readout.innerHTML =
+        `w = <b>${w.toFixed(2)}</b> &nbsp; L(w) = <b>${l.toFixed(3)}</b><br>` +
+        `勾配 ∂L/∂w = <b>${g.toFixed(2)}</b> &nbsp; step ${steps}` +
+        (settled
+          ? ` &nbsp;→&nbsp; <span class="d-fire d-fire--on">停留点に収束 ✓</span>`
+          : "");
+    }
+
+    function step() {
+      const g = grad(w);
+      w = clamp(w - eta * g, WMIN, WMAX);
+      path.push(w);
+      steps++;
+    }
+    function stopAuto() {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+        q<HTMLButtonElement>("[data-auto]")!.textContent = "▶ 自動";
+      }
+    }
+    function setStart(nw: number) {
+      stopAuto();
+      w = clamp(nw, WMIN, WMAX);
+      steps = 0;
+      path = [w];
+      render();
+    }
+
+    q<HTMLInputElement>("[data-eta]")!.addEventListener("input", (e) => {
+      eta = Number((e.target as HTMLInputElement).value);
+      q<HTMLElement>("[data-etaval]")!.textContent = eta.toFixed(2);
+    });
+    q<HTMLButtonElement>("[data-step]")!.addEventListener("click", () => {
+      stopAuto();
+      step();
+      render();
+    });
+    q<HTMLButtonElement>("[data-reset]")!.addEventListener("click", () => setStart(-4.2));
+    q<HTMLButtonElement>("[data-auto]")!.addEventListener("click", () => {
+      const btn = q<HTMLButtonElement>("[data-auto]")!;
+      if (timer !== null) {
+        stopAuto();
+        return;
+      }
+      btn.textContent = "⏸ 停止";
+      timer = window.setInterval(() => {
+        step();
+        render();
+        if (steps > 220) stopAuto();
+      }, 120);
+    });
+    svg.addEventListener("click", (e) => {
+      const rect = svg.getBoundingClientRect();
+      const sx = ((e.clientX - rect.left) / rect.width) * W;
+      setStart(wAt(sx));
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-grad]").forEach(setup);
+</script>
+
+<style>
+  .gd {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 340px) 1fr;
+    align-items: start;
+  }
+  @media (max-width: 600px) {
+    .gd {
+      grid-template-columns: 1fr;
+    }
+  }
+  .gd__svg {
+    width: 100%;
+    max-width: 340px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: crosshair;
+  }
+  .gd__curve {
+    fill: none;
+    stroke: hsl(var(--era-hue) 70% 56%);
+    stroke-width: 2;
+  }
+  .gd__ball {
+    fill: var(--green);
+    stroke: var(--bg);
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 6px hsl(145 100% 60% / 0.7));
+  }
+  .gd__tangent {
+    stroke: #fff;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    opacity: 0.8;
+  }
+  :global(.gd__trail) {
+    fill: hsl(var(--era-hue) 90% 70%);
+  }
+  .gd__ctrls {
+    display: grid;
+    gap: 0.7rem;
+    align-content: start;
+  }
+  .gd__ctrls :global(b) {
+    color: #fff;
+  }
+</style>
