@@ -52,7 +52,9 @@ import MarginDemo from "@/components/demos/MarginDemo.astro";
 
 ## 技術の中身①：SVM とカーネル — 余白を最大にする
 
-SVM の発想は驚くほど幾何的です。2クラスを分ける境界（超平面）は無数に引けますが、SVM はそのうち**最も「余白」の広い**ものを選びます。決定関数を
+<Prereq terms={["vector", "norm", "hyperplane", "convex-optimization"]} />
+
+SVM の発想は驚くほど幾何的です。2クラスを分ける境界（<Term id="hyperplane">超平面</Term>）は無数に引けますが、SVM はそのうち**最も「余白」の広い**ものを選びます。決定関数を
 
 $$
 f(\mathbf{x}) = \mathbf{w}\cdot\mathbf{x} + b
@@ -60,7 +62,7 @@ $$
 
 とし、$f(\mathbf{x})=0$ を境界面とします。各データ点 $\mathbf{x}_i$ とこの面との距離は $|\,\mathbf{w}\cdot\mathbf{x}_i + b\,| / \lVert\mathbf{w}\rVert$。境界に最も近い点（**サポートベクター**）との距離が<Term id="margin">マージン</Term>で、これを最大化することが汎化への賭けになります。
 
-スケールを $y_i(\mathbf{w}\cdot\mathbf{x}_i + b) \ge 1$ と正規化すると、マージンは $1/\lVert\mathbf{w}\rVert$ に比例します。よって「マージン最大化」は、次の凸二次計画問題に帰着します。
+スケールを $y_i(\mathbf{w}\cdot\mathbf{x}_i + b) \ge 1$ と正規化すると、マージンは $1/\lVert\mathbf{w}\rVert$（重みベクトルの長さ＝<Term id="norm">ノルム</Term>の逆数）に比例します。よって「マージン最大化」は、次の<Term id="convex-optimization">凸二次計画問題</Term>に帰着します。
 
 $$
 \min_{\mathbf{w},\,b} \ \tfrac{1}{2}\lVert\mathbf{w}\rVert^2
@@ -93,6 +95,8 @@ $$
 
 ## 技術の中身②：勾配消失と LSTM — 静かな伏線
 
+<Prereq terms={["partial-derivative", "gradient", "vanishing-gradient"]} />
+
 統計的手法が表舞台を占めるなか、神経回路の系譜は地下水脈として生き延びていました。その鍵を握る問題が、系列を扱う<Term id="rnn">リカレントニューラルネット（RNN）</Term>にありました。
 
 RNN は時刻ごとに隠れ状態 $\mathbf{h}_t$ を更新します。
@@ -101,7 +105,7 @@ $$
 \mathbf{h}_t = \tanh\!\big(W_h \mathbf{h}_{t-1} + W_x \mathbf{x}_t + \mathbf{b}\big)
 $$
 
-理屈の上では $\mathbf{h}_t$ が過去すべての文脈を運ぶはずです。ところが時間方向に展開して誤差逆伝播すると、$T$ ステップ前への勾配には $\prod_{t} \partial\mathbf{h}_t/\partial\mathbf{h}_{t-1}$ という**ヤコビアンの積**が現れます。各因子の大きさがおおむね $1$ 未満なら勾配は $T$ について指数的に $0$ へ潰れ（<Term id="vanishing-gradient">勾配消失</Term>）、$1$ 超なら逆に発散します。結果として RNN は、数十ステップ離れた**長期依存**をまともに学べませんでした。これを定式化したのが、当時シュミットフーバーのもとで学んでいたホッフライターです。
+理屈の上では $\mathbf{h}_t$ が過去すべての文脈を運ぶはずです。ところが時間方向に展開して誤差逆伝播すると、$T$ ステップ前への勾配には $\prod_{t} \partial\mathbf{h}_t/\partial\mathbf{h}_{t-1}$ という**ヤコビアンの積**（ヤコビアン＝各時刻の偏微分を集めた行列。$\prod$ は項を全部掛ける記号）が現れます。各因子の大きさがおおむね $1$ 未満なら勾配は $T$ について指数的に $0$ へ潰れ（<Term id="vanishing-gradient">勾配消失</Term>）、$1$ 超なら逆に発散します。結果として RNN は、数十ステップ離れた**長期依存**をまともに学べませんでした。これを定式化したのが、当時シュミットフーバーのもとで学んでいたホッフライターです。
 
 <PersonCard id="schmidhuber" />
 

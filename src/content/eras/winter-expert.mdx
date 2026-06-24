@@ -60,13 +60,15 @@ import GradientDescent from "@/components/demos/GradientDescent.astro";
 
 ## 技術の中身①：誤差逆伝播 — XORへの回答
 
+<Prereq terms={["derivative", "partial-derivative", "gradient", "loss-function"]} />
+
 前章の宿題はこうでした——「多層にすればXORは表現できる。だが、隠れ層の重みをどう学習するのか？」
 その答えが<Term id="backprop">誤差逆伝播</Term>です。核心は、出力で測った誤差を
 <Term id="chain-rule">連鎖律</Term>で各層へ後ろ向きに分配する、ただそれだけのアイデアにあります。
 
-まず**順伝播**で予測 $\hat{y}$ を出し、正解との損失 $L$ を測ります。
-学習とは、すべての重み $\mathbf{w}$ について「$\mathbf{w}$ を少し動かすと $L$ がどう変わるか」、
-すなわち勾配 $\partial L/\partial \mathbf{w}$ を求め、それを下る向きへ重みを動かすこと（<Term id="gradient-descent">勾配降下</Term>）です。
+まず**順伝播**で予測 $\hat{y}$ を出し、正解との<Term id="loss-function">損失</Term> $L$ を測ります。
+学習とは、すべての重み $\mathbf{w}$ について「$\mathbf{w}$ を少し動かすと $L$ がどう変わるか」（<Term id="partial-derivative">偏微分</Term>）、
+すなわち<Term id="gradient">勾配</Term> $\partial L/\partial \mathbf{w}$ を求め、それを下る向きへ重みを動かすこと（<Term id="gradient-descent">勾配降下</Term>）です。
 
 $$
 \mathbf{w} \leftarrow \mathbf{w} - \eta\,\frac{\partial L}{\partial \mathbf{w}}

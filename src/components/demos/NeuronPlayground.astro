@@ -1,12 +1,12 @@
 ---
 import Demo from "@/components/Demo.astro";
 // McCulloch–Pitts 形式ニューロンを触って論理ゲートを組むデモ。
-// Σ = w1·x1 + w2·x2 が しきい値 θ 以上なら発火 y=1。
+// Σ = w1·x1 + w2·x2 が しきい値 b 以上なら発火 y=1。
 ---
 
 <Demo
   title="形式ニューロンで論理ゲートを作る"
-  caption="重み w としきい値 θ を変えるだけで、同じニューロンが AND・OR・NAND に化ける。右下の真理値表が現在の設定でのゲートの全挙動。これが「重みで計算が決まる」ということ。"
+  caption="重み w としきい値 b を変えるだけで、同じニューロンが AND・OR・NAND に化ける。右下の真理値表が現在の設定でのゲートの全挙動。これが「重みで計算が決まる」ということ。"
   label="DEMO 1.1"
 >
   <div class="np" data-neuron>
@@ -28,7 +28,7 @@ import Demo from "@/components/Demo.astro";
       <!-- step -->
       <line class="np-edge" x1="244" y1="108" x2="280" y2="108"></line>
       <rect class="np-step" x="280" y="84" width="50" height="48" rx="7"></rect>
-      <text class="np-t" x="305" y="103" style="font-size:13px">θ=<tspan data-thlab>0</tspan></text>
+      <text class="np-t" x="305" y="103" style="font-size:13px">b=<tspan data-thlab>0</tspan></text>
       <text class="np-sub" x="305" y="120">step</text>
       <!-- output -->
       <line data-edge="out" class="np-edge np-edge--out" x1="330" y1="108" x2="356" y2="108"></line>
@@ -58,7 +58,7 @@ import Demo from "@/components/Demo.astro";
         <span class="d-val" data-wval="2">+1</span>
       </div>
       <div class="d-row">
-        <span class="d-label">しきい値 θ</span>
+        <span class="d-label">しきい値 b</span>
         <input class="d-slider" data-th type="range" min="-3" max="3" step="1" value="2" />
         <span class="d-val" data-thval>+2</span>
       </div>

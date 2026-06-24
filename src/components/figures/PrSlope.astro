@@ -1,0 +1,97 @@
+---
+// 微分＝傾き：損失の曲線上のある点で接線を引くと、その傾きが「どちらへ動かせば
+// 損失が増える／減るか」を教えてくれる。逆向き（下り坂）へ重みを動かすのが勾配降下。
+---
+
+<svg viewBox="0 0 600 280" role="img" aria-label="損失曲線と接線の傾き（微分）の模式図">
+  <!-- 軸 -->
+  <line class="axis" x1="80" y1="30" x2="80" y2="235" />
+  <line class="axis" x1="80" y1="235" x2="560" y2="235" />
+  <text class="axislabel" x="74" y="24">損失 L</text>
+  <text class="axislabel" x="566" y="250">重み w</text>
+
+  <!-- 損失曲線（U字＝お椀型） -->
+  <polyline
+    class="curve"
+    points="120,37 150,88 180,130 210,163 240,186 270,200 300,205 330,200 360,186 390,163 420,130 450,88 480,37"
+  />
+
+  <!-- 最小（谷底） -->
+  <circle class="vertex" cx="300" cy="205" r="5" />
+  <text class="vlabel" x="300" y="226">最小（ここが目標）</text>
+
+  <!-- 接線 -->
+  <line class="tangent" x1="368" y1="195" x2="472" y2="65" />
+  <!-- いまの点 -->
+  <circle class="pt" cx="420" cy="130" r="6" />
+  <text class="ptlabel" x="438" y="120">いまの重み</text>
+  <text class="slopelabel" x="486" y="92">接線の傾き＝勾配</text>
+
+  <!-- 下り坂の向き（負の勾配） -->
+  <line class="downhill" x1="408" y1="142" x2="350" y2="178" />
+  <polygon class="arrow" points="350,178 360,168 364,182" />
+  <text class="downlabel" x="300" y="170">損失が下がる向きへ動かす</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .axis {
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .axislabel {
+    fill: var(--text-muted);
+    font-size: 12px;
+  }
+  .curve {
+    fill: none;
+    stroke: hsl(var(--era-hue) 70% 60%);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+  }
+  .vertex {
+    fill: var(--text-dim);
+  }
+  .vlabel {
+    fill: var(--text-dim);
+    font-size: 11px;
+    text-anchor: middle;
+    font-family: var(--font-sans);
+  }
+  .tangent {
+    stroke: hsl(var(--era-hue) 90% 70%);
+    stroke-width: 2;
+    stroke-dasharray: 5 4;
+  }
+  .pt {
+    fill: #fff;
+    stroke: hsl(var(--era-hue) 90% 65%);
+    stroke-width: 2.5;
+  }
+  .ptlabel,
+  .slopelabel {
+    fill: var(--text);
+    font-size: 12px;
+  }
+  .slopelabel {
+    fill: hsl(var(--era-hue) 80% 78%);
+    text-anchor: end;
+  }
+  .downhill {
+    stroke: var(--green);
+    stroke-width: 2.5;
+  }
+  .arrow {
+    fill: var(--green);
+  }
+  .downlabel {
+    fill: var(--green);
+    font-size: 11px;
+    text-anchor: middle;
+    font-family: var(--font-sans);
+  }
+</style>

@@ -277,6 +277,33 @@ a:hover {
   border-bottom-color: hsl(var(--era-hue) 90% 70%);
 }
 
+/* 表（第0章の記号早見表など）。狭い画面では横スクロール。 */
+.prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin-block: 1.4em;
+  font-size: 0.9rem;
+}
+.prose thead th {
+  text-align: left;
+  color: hsl(var(--era-hue) 35% 88%);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  white-space: nowrap;
+}
+.prose tbody td {
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  color: var(--text-muted);
+}
+.prose tbody td:first-child {
+  color: var(--text);
+}
+
 /* KaTeX を暗背景に馴染ませる */
 .katex {
   color: #e8eefb;

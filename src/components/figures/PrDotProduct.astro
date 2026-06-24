@@ -1,0 +1,123 @@
+---
+// 内積＝重み付き和：対応する成分どうしを掛けて、全部足すと1個の数になる。
+---
+
+<svg viewBox="0 0 600 250" role="img" aria-label="内積（重み付き和）の模式図">
+  <!-- 行ラベル -->
+  <text class="rowlabel" x="40" y="55">w</text>
+  <text class="rowlabel" x="40" y="115">x</text>
+
+  <!-- w の成分 -->
+  <g class="cell cell--w">
+    <rect x="110" y="32" width="64" height="46" rx="7" />
+    <rect x="214" y="32" width="64" height="46" rx="7" />
+    <rect x="318" y="32" width="64" height="46" rx="7" />
+  </g>
+  <g class="celltext">
+    <text x="142" y="55">w₁</text>
+    <text x="246" y="55">w₂</text>
+    <text x="350" y="55">w₃</text>
+  </g>
+
+  <!-- x の成分 -->
+  <g class="cell cell--x">
+    <rect x="110" y="92" width="64" height="46" rx="7" />
+    <rect x="214" y="92" width="64" height="46" rx="7" />
+    <rect x="318" y="92" width="64" height="46" rx="7" />
+  </g>
+  <g class="celltext">
+    <text x="142" y="115">x₁</text>
+    <text x="246" y="115">x₂</text>
+    <text x="350" y="115">x₃</text>
+  </g>
+
+  <!-- 掛け算（×）を各列の下に -->
+  <g class="op">
+    <text x="142" y="165">↓×</text>
+    <text x="246" y="165">↓×</text>
+    <text x="350" y="165">↓×</text>
+  </g>
+
+  <!-- 積の行 -->
+  <g class="prodtext">
+    <text x="142" y="200">w₁x₁</text>
+    <text x="246" y="200">w₂x₂</text>
+    <text x="350" y="200">w₃x₃</text>
+  </g>
+  <text class="plus" x="194" y="200">+</text>
+  <text class="plus" x="298" y="200">+</text>
+
+  <!-- = 1個の数 -->
+  <text class="eq" x="424" y="200">=</text>
+  <rect class="result" x="450" y="176" width="110" height="46" rx="9" />
+  <text class="resulttext" x="505" y="200">w·x</text>
+
+  <text class="caption" x="300" y="238">対応する成分を掛けて、全部足す → ただ 1 個の数</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .rowlabel {
+    fill: hsl(var(--era-hue) 80% 72%);
+    font-size: 22px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .cell rect {
+    fill: var(--surface-2);
+    stroke-width: 2;
+  }
+  .cell--w rect {
+    stroke: hsl(var(--era-hue) 70% 60%);
+  }
+  .cell--x rect {
+    stroke: hsl(var(--era-hue) 45% 50%);
+  }
+  .celltext text {
+    fill: var(--text);
+    font-size: 16px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .op text {
+    fill: var(--text-dim);
+    font-size: 14px;
+    text-anchor: middle;
+  }
+  .prodtext text {
+    fill: hsl(var(--era-hue) 40% 84%);
+    font-size: 15px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .plus,
+  .eq {
+    fill: var(--text-muted);
+    font-size: 18px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .result {
+    fill: hsl(var(--era-hue) 60% 50% / 0.14);
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2.5;
+  }
+  .resulttext {
+    fill: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .caption {
+    fill: var(--text-muted);
+    font-size: 12px;
+    text-anchor: middle;
+    font-family: var(--font-sans);
+  }
+</style>

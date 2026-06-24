@@ -36,12 +36,12 @@ AIはついに研究室を出て、何億もの人の手のひらに降りてき
 
 ## 主要マイルストーン
 
-<Milestone year="2021" title="CLIP と DALL·E">
-  OpenAI が、画像とテキストを同じベクトル空間に対応づける<Term id="clip">CLIP</Term>と、テキストから画像を生成する DALL·E を発表。「言葉で絵を指す」基盤が整った。
-</Milestone>
-
 <Milestone year="2020" title="DDPM（拡散モデルの確立）">
   Ho らの "Denoising Diffusion Probabilistic Models" が、ノイズ除去を繰り返す<Term id="diffusion">拡散モデル</Term>を高品質な生成手法として再定式化。後の画像生成ブームの数理的な土台となった。
+</Milestone>
+
+<Milestone year="2021" title="CLIP と DALL·E">
+  OpenAI が、画像とテキストを同じベクトル空間に対応づける<Term id="clip">CLIP</Term>と、テキストから画像を生成する DALL·E を発表。「言葉で絵を指す」基盤が整った。
 </Milestone>
 
 <Milestone year="2022" title="Stable Diffusion（オープンな拡散モデル）">
@@ -62,8 +62,10 @@ AIはついに研究室を出て、何億もの人の手のひらに降りてき
 
 ## 技術の中身①：ノイズから絵を立ち上げる — 拡散モデル
 
+<Prereq terms={["gaussian", "expectation", "norm", "probability-distribution"]} />
+
 画像生成の主役となった<Term id="diffusion">拡散モデル</Term>の発想は、意外なほど単純です。
-まず、きれいなデータ $\mathbf{x}_0$ に**少しずつガウスノイズを加えて**いき、最終的に純粋なノイズ $\mathbf{x}_T$ に壊す。
+まず、きれいなデータ $\mathbf{x}_0$ に少しずつ<Term id="gaussian">ガウスノイズ</Term>（正規分布に従うノイズ）を加えていき、最終的に純粋なノイズ $\mathbf{x}_T$ に壊す。
 この*前向き過程*は、各ステップで次のように定義されます。
 
 $$
@@ -96,6 +98,8 @@ $$
 
 ## 技術の中身②：対話への仕上げ — RLHF
 
+<Prereq terms={["expectation", "kl-divergence"]} />
+
 一方の言語側。<Term id="gpt">GPT</Term>に代表される巨大言語モデルは、何兆語ものテキストで「次の語」を当てる事前学習を積んでいます。
 ところが、ここに本質的なねじれがあります。素のモデルは、本質的には**もっともらしい続きを書く確率機**でしかありません。
 「フランスの首都は？」と問えば、答えるより先に*似たような質問文を並べ続ける*ことすらある。
@@ -107,7 +111,7 @@ $$
 - **報酬モデルの学習**：同じ質問への複数の回答を人間に**優劣比較**させ、その選好を再現する報酬モデル $r_\phi$ を作る。
 - **方策の最適化**：その報酬を信号に、PPO などの<Term id="reinforcement-learning">強化学習</Term>で言語モデル本体を更新する。
 
-最適化の目的は、報酬を上げつつ、元のモデルから離れすぎないよう KL ペナルティで抑える形で書けます。
+最適化の目的は、報酬を上げつつ、元のモデルから離れすぎないよう <Term id="kl-divergence">KL</Term> ペナルティで抑える形で書けます。
 
 $$
 \max_{\pi_\theta}\ \mathbb{E}_{x \sim \pi_\theta}\!\left[\, r_\phi(x) \,\right] - \beta\, \mathrm{KL}\!\left(\pi_\theta \,\Vert\, \pi_{\text{ref}}\right)
@@ -125,7 +129,7 @@ RLHF を含むGPT系列を初期から率い、OpenAIの方向を定めた一人
 ## 技術の中身③：宿命としてのハルシネーション
 
 ただし、整列は万能ではありません。生成AIには構造的な弱点が残ります——<Term id="hallucination">ハルシネーション</Term>です。
-言語モデルは、各時刻で語彙上の確率分布から次の語を選んでいるにすぎません。
+言語モデルは、各時刻で語彙上の<Term id="probability-distribution">確率分布</Term>から次の語を選んでいるにすぎません。
 事実かどうかを照合する装置を内蔵しているわけではなく、**もっともらしさ**だけを最大化します。
 だから、存在しない論文を堂々と引用し、もっともらしい嘘を自信たっぷりに述べる。
 これはバグというより、確率的な次語予測という仕組みそのものに由来する*宿命*です。

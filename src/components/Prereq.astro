@@ -1,0 +1,92 @@
+---
+// 「技術の中身」節の頭に置く前提コールアウト。
+// terms に用語集 id を並べると、各語のラベルを引いて用語集アンカーへリンクし、
+// まとめて第0章「数学の道具箱」へ誘導する。ゼロ初学者が数式節へ登る足場。
+import { getTerm } from "@/lib/glossary";
+import { siteLink } from "@/lib/url";
+
+interface Props {
+  terms: string[];
+  /** 第0章のどの節へ飛ばすか（例 "#derivative"）。省略時は primer トップ。 */
+  primer?: string;
+}
+const { terms, primer = "" } = Astro.props;
+
+const items = terms.map((id) => ({ id, entry: getTerm(id) }));
+
+if (import.meta.env.DEV) {
+  const bad = items.filter((it) => !it.entry).map((it) => it.id);
+  if (bad.length) console.warn(`[Prereq] glossary に未登録の id: ${bad.join(", ")}`);
+}
+---
+
+<aside class="prereq not-prose" aria-label="この節の前提知識">
+  <span class="prereq__head mono">▸ この節を読むのに必要な前提</span>
+  <ul class="prereq__list">
+    {
+      items.map((it) => (
+        <li>
+          <a class="prereq__chip" href={siteLink(`/glossary#${it.id}`)}>
+            {it.entry ? it.entry.term : it.id}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <a class="prereq__primer mono" href={siteLink(`/eras/primer${primer}`)}>
+    → わからなければ 第0章「数学の道具箱」へ
+  </a>
+</aside>
+
+<style>
+  .prereq {
+    margin: 1.4rem 0 1.8rem;
+    padding: 0.85rem 1rem 0.95rem;
+    background: hsl(var(--era-hue) 60% 50% / 0.06);
+    border: 1px dashed hsl(var(--era-hue) 70% 55% / 0.5);
+    border-radius: var(--radius-sm);
+  }
+  .prereq__head {
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: hsl(var(--era-hue) 75% 72%);
+    letter-spacing: 0.02em;
+  }
+  .prereq__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .prereq__chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: hsl(var(--era-hue) 40% 82%);
+    padding: 0.15rem 0.6rem;
+    border: 1px solid hsl(var(--era-hue) 60% 50% / 0.4);
+    border-radius: 999px;
+    background: hsl(var(--era-hue) 60% 50% / 0.08);
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease,
+      background 0.15s ease;
+  }
+  .prereq__chip:hover {
+    color: #fff;
+    border-color: hsl(var(--era-hue) 80% 60%);
+    background: hsl(var(--era-hue) 70% 55% / 0.18);
+  }
+  .prereq__primer {
+    display: inline-block;
+    margin-top: 0.7rem;
+    font-size: 0.74rem;
+    color: hsl(var(--era-hue) 85% 72%);
+  }
+  .prereq__primer:hover {
+    color: hsl(var(--era-hue) 95% 82%);
+  }
+</style>

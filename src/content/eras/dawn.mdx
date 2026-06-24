@@ -67,18 +67,21 @@ import NeuronPlayground from "@/components/demos/NeuronPlayground.astro";
 
 ## 技術の中身②：脳を数式にする — 形式ニューロン
 
+<Prereq terms={["vector", "dot-product"]} />
+
 一方、マカロックとピッツは脳に着目しました。彼らのニューロンは、複数の入力 $x_i$ を
-それぞれの重み $w_i$ で足し合わせ、しきい値 $\theta$ を超えれば $1$、超えなければ $0$ を出す素子です。
+それぞれの重み $w_i$ で足し合わせ（この重み付き和が<Term id="dot-product">内積</Term> $\mathbf{w}\cdot\mathbf{x}$ です）、
+しきい値 $b$ を超えれば $1$、超えなければ $0$ を出す素子です。
 
 $$
-y = \theta\!\left(\sum_{i} w_i x_i - b\right)
+y = \mathrm{step}\!\left(\sum_{i} w_i x_i - b\right)
 $$
 
-ここで $\theta(\cdot)$ は「正なら1、負なら0」を返すステップ関数、$b$ はしきい値（バイアス）。
+ここで $\mathrm{step}(\cdot)$ は「正なら1、負なら0」を返すステップ関数、$b$ はしきい値（バイアス）。
 たったこれだけで AND・OR・NOT といった論理演算が組め、ニューロンの結合だけで
 論理回路＝計算が表現できることを示しました。
 
-<Figure caption="形式ニューロン：入力の重み付き和 Σwᵢxᵢ をしきい値 θ で 0/1 に変換する。現代の人工ニューロンも本質はこの形のまま。" label="FIG 1.1">
+<Figure caption="形式ニューロン：入力の重み付き和 Σwᵢxᵢ をしきい値 b と比べ、ステップ関数で 0/1 に変換する。現代の人工ニューロンも本質はこの形のまま。" label="FIG 1.1">
   <FormalNeuron />
 </Figure>
 

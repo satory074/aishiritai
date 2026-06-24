@@ -6,6 +6,7 @@ import Term from "@/components/Term.astro";
 import PersonCard from "@/components/PersonCard.astro";
 import Milestone from "@/components/Milestone.astro";
 import Figure from "@/components/Figure.astro";
+import Prereq from "@/components/Prereq.astro";
 import { siteLink } from "@/lib/url";
 
 export async function getStaticPaths() {
@@ -38,9 +39,11 @@ const { era, prev, next } = Astro.props;
 const { Content } = await render(era);
 const d = era.data;
 const num = String(d.order).padStart(2, "0");
+// 第0章（数学の道具箱）は「時代」ではなく前提知識なので章番号表示を分ける
+const isPrimer = d.order === 0;
 
 // MDX 本文に注入する共通コンポーネント
-const components = { Term, PersonCard, Milestone, Figure };
+const components = { Term, PersonCard, Milestone, Figure, Prereq };
 ---
 
 <Layout title={d.title} description={d.summary} eraHue={d.hue}>
@@ -49,7 +52,7 @@ const components = { Term, PersonCard, Milestone, Figure };
     <div class="wrap">
       <a class="ehead__back mono" href={siteLink("/")}>← 目次</a>
       <div class="ehead__meta mono">
-        <span class="ehead__num">CHAPTER {num} / 08</span>
+        <span class="ehead__num">{isPrimer ? "CHAPTER 00 · 前提知識" : `CHAPTER ${num} / 08`}</span>
         <span class="ehead__period">{d.period}</span>
       </div>
       <h1 class="ehead__title">{d.title}</h1>
