@@ -1,0 +1,122 @@
+---
+import { getCollection, render } from "astro:content";
+import Layout from "@/components/Layout.astro";
+import EraNav from "@/components/EraNav.astro";
+import Term from "@/components/Term.astro";
+import PersonCard from "@/components/PersonCard.astro";
+import Milestone from "@/components/Milestone.astro";
+import Figure from "@/components/Figure.astro";
+import { siteLink } from "@/lib/url";
+
+export async function getStaticPaths() {
+  const eras = (await getCollection("eras")).sort(
+    (a, b) => a.data.order - b.data.order
+  );
+  return eras.map((era, i) => ({
+    params: { id: era.id },
+    props: {
+      era,
+      prev: eras[i - 1]
+        ? {
+            id: eras[i - 1].id,
+            title: eras[i - 1].data.title,
+            order: eras[i - 1].data.order,
+          }
+        : undefined,
+      next: eras[i + 1]
+        ? {
+            id: eras[i + 1].id,
+            title: eras[i + 1].data.title,
+            order: eras[i + 1].data.order,
+          }
+        : undefined,
+    },
+  }));
+}
+
+const { era, prev, next } = Astro.props;
+const { Content } = await render(era);
+const d = era.data;
+const num = String(d.order).padStart(2, "0");
+
+// MDX 本文に注入する共通コンポーネント
+const components = { Term, PersonCard, Milestone, Figure };
+---
+
+<Layout title={d.title} description={d.summary} eraHue={d.hue}>
+  <!-- 章ヘッダー -->
+  <header class="ehead">
+    <div class="wrap">
+      <a class="ehead__back mono" href={siteLink("/")}>← 目次</a>
+      <div class="ehead__meta mono">
+        <span class="ehead__num">CHAPTER {num} / 08</span>
+        <span class="ehead__period">{d.period}</span>
+      </div>
+      <h1 class="ehead__title">{d.title}</h1>
+      {d.subtitle && <p class="ehead__sub">{d.subtitle}</p>}
+      <div class="ehead__rule"></div>
+    </div>
+  </header>
+
+  <!-- 本文（MDX） -->
+  <article class="wrap prose">
+    <Content components={components} />
+    <EraNav prev={prev} next={next} />
+  </article>
+</Layout>
+
+<style>
+  .ehead {
+    padding-block: 2.5rem 0;
+  }
+  .ehead__back {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 1.6rem;
+  }
+  .ehead__back:hover {
+    color: hsl(var(--era-hue) 85% 72%);
+  }
+  .ehead__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.6rem 1rem;
+    font-size: 0.76rem;
+  }
+  .ehead__num {
+    color: hsl(var(--era-hue) 85% 68%);
+    letter-spacing: 0.12em;
+  }
+  .ehead__period {
+    color: var(--text-dim);
+  }
+  .ehead__title {
+    font-family: var(--font-mono);
+    font-size: clamp(1.9rem, 5vw, 2.9rem);
+    line-height: 1.2;
+    font-weight: 700;
+    color: #fff;
+    margin: 0.7rem 0 0;
+  }
+  .ehead__sub {
+    margin: 0.8rem 0 0;
+    font-size: 1.02rem;
+    line-height: 1.8;
+    color: var(--text-muted);
+    max-width: 44rem;
+  }
+  .ehead__rule {
+    height: 2px;
+    margin-top: 1.8rem;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--era-hue) 90% 60%),
+      hsl(var(--era-hue) 90% 60% / 0)
+    );
+  }
+  .prose {
+    padding-top: 0.5rem;
+  }
+</style>

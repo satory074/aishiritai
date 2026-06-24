@@ -1,0 +1,64 @@
+---
+interface Props {
+  year: string | number;
+  title: string;
+}
+const { year, title } = Astro.props;
+---
+
+<div class="ms not-prose">
+  <span class="ms__node" aria-hidden="true"></span>
+  <div class="ms__head">
+    <span class="ms__year mono">{year}</span>
+    <span class="ms__title">{title}</span>
+  </div>
+  <div class="ms__desc"><slot /></div>
+</div>
+
+<style>
+  .ms {
+    position: relative;
+    margin-left: 0.4rem;
+    padding-left: 1.5rem;
+    padding-bottom: 1.3rem;
+    border-left: 1px solid var(--border);
+  }
+  .ms:last-child {
+    border-left-color: transparent;
+  }
+  .ms__node {
+    position: absolute;
+    left: -5px;
+    top: 5px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: hsl(var(--era-hue) 90% 64%);
+    box-shadow: 0 0 10px hsl(var(--era-hue) 90% 60% / 0.8);
+  }
+  .ms__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.7rem;
+  }
+  .ms__year {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: hsl(var(--era-hue) 85% 68%);
+  }
+  .ms__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .ms__desc {
+    margin-top: 0.25rem;
+    font-size: 0.92rem;
+    line-height: 1.75;
+    color: var(--text-muted);
+  }
+  .ms__desc :global(:first-child) {
+    margin-top: 0;
+  }
+</style>

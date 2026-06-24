@@ -1,0 +1,46 @@
+---
+import Layout from "@/components/Layout.astro";
+import PersonCard from "@/components/PersonCard.astro";
+import { allPeople } from "@/lib/people";
+
+const people = allPeople();
+---
+
+<Layout title="人物" description="AIの歴史をつくった研究者たち。チューリングからヴァスワニまで、生年順の一覧。">
+  <section class="wrap page">
+    <p class="kicker">PEOPLE</p>
+    <h1 class="page__title mono">AIの歴史をつくった人々</h1>
+    <p class="page__lead">
+      理論を打ち立てた数学者から、ブレイクスルーを起こした研究者まで。生年順に並べています。
+    </p>
+    <div class="people__grid">
+      {people.map((p) => <PersonCard id={p.id} />)}
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page {
+    padding-block: 2.5rem;
+  }
+  .page__title {
+    font-size: clamp(1.7rem, 5vw, 2.4rem);
+    color: #fff;
+    margin: 0.6rem 0 0;
+  }
+  .page__lead {
+    margin: 0.8rem 0 2rem;
+    color: var(--text-muted);
+    max-width: 42rem;
+  }
+  .people__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0 1rem;
+  }
+  @media (max-width: 640px) {
+    .people__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

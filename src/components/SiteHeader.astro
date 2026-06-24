@@ -1,0 +1,93 @@
+---
+import { siteLink } from "@/lib/url";
+
+const nav = [
+  { href: siteLink("/"), label: "目次" },
+  { href: siteLink("/people"), label: "人物" },
+  { href: siteLink("/glossary"), label: "用語集" },
+];
+const current = Astro.url.pathname.replace(/\/$/, "");
+---
+
+<header class="hdr">
+  <div class="wrap hdr__inner">
+    <a class="hdr__brand mono" href={siteLink("/")}>
+      <span class="hdr__prompt">&gt;_</span>
+      <span class="hdr__name">aishiritai</span>
+      <span class="hdr__sub">AIの歴史</span>
+    </a>
+    <nav class="hdr__nav mono">
+      {
+        nav.map((item) => {
+          const active = current === item.href.replace(/\/$/, "");
+          return (
+            <a href={item.href} class:list={["hdr__link", { active }]}>
+              {item.label}
+            </a>
+          );
+        })
+      }
+    </nav>
+  </div>
+</header>
+
+<style>
+  .hdr {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .hdr__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 56px;
+  }
+  .hdr__brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    color: var(--text);
+  }
+  .hdr__prompt {
+    color: hsl(var(--era-hue) 90% 66%);
+    text-shadow: var(--glow) hsl(var(--era-hue) 90% 60% / 0.7);
+  }
+  .hdr__name {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .hdr__sub {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  @media (max-width: 460px) {
+    .hdr__sub {
+      display: none;
+    }
+  }
+  .hdr__nav {
+    display: flex;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+  }
+  .hdr__link {
+    color: var(--text-muted);
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+  }
+  .hdr__link:hover {
+    color: var(--text);
+    background: var(--surface);
+  }
+  .hdr__link.active {
+    color: hsl(var(--era-hue) 90% 78%);
+    border-color: hsl(var(--era-hue) 80% 55% / 0.35);
+    background: hsl(var(--era-hue) 70% 50% / 0.08);
+  }
+</style>

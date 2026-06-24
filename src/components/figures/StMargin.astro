@@ -1,0 +1,101 @@
+---
+// SVM のマージン最大化：2クラスを分ける超平面と、最も近い点（サポートベクター）までの余白
+---
+
+<svg viewBox="0 0 600 320" role="img" aria-label="サポートベクターマシンのマージン最大化の模式図">
+  <!-- margin band -->
+  <polygon class="band" points="60,300 300,20 360,20 120,300" />
+  <!-- margin boundaries (dashed) -->
+  <g class="bound">
+    <line x1="60" y1="300" x2="300" y2="20" />
+    <line x1="120" y1="300" x2="360" y2="20" />
+  </g>
+  <!-- decision hyperplane (solid) -->
+  <line class="hyper" x1="90" y1="300" x2="330" y2="20" />
+  <text class="hyperlabel" x="318" y="40">w·x + b = 0</text>
+  <!-- margin arrow -->
+  <g class="marrow">
+    <line x1="150" y1="170" x2="210" y2="130" />
+    <polygon points="150,170 162,168 154,158" />
+    <polygon points="210,130 198,132 206,142" />
+  </g>
+  <text class="mlabel" x="150" y="120">マージン</text>
+  <!-- class A (negative side, circles) -->
+  <g class="ptA">
+    <circle cx="430" cy="70" r="11" />
+    <circle cx="470" cy="130" r="11" />
+    <circle cx="500" cy="60" r="11" />
+    <circle cx="420" cy="150" r="11" />
+  </g>
+  <!-- class B (positive side, squares) -->
+  <g class="ptB">
+    <rect x="80" y="60" width="20" height="20" rx="3" />
+    <rect x="130" y="120" width="20" height="20" rx="3" />
+    <rect x="60" y="180" width="20" height="20" rx="3" />
+    <rect x="40" y="100" width="20" height="20" rx="3" />
+  </g>
+  <!-- support vectors (highlighted, sit on the dashed boundaries) -->
+  <g class="sv">
+    <rect x="146" y="178" width="20" height="20" rx="3" />
+    <circle cx="320" cy="118" r="11" />
+  </g>
+  <text class="svlabel" x="200" y="208">サポートベクター</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .band {
+    fill: hsl(var(--era-hue) 60% 50% / 0.12);
+  }
+  .bound line {
+    stroke: hsl(var(--era-hue) 70% 60%);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 5;
+  }
+  .hyper {
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 3;
+  }
+  .hyperlabel {
+    fill: hsl(var(--era-hue) 85% 72%);
+    font-size: 13px;
+    text-anchor: end;
+  }
+  .marrow line {
+    stroke: var(--text-muted);
+    stroke-width: 1.5;
+  }
+  .marrow polygon {
+    fill: var(--text-muted);
+  }
+  .mlabel {
+    fill: var(--text);
+    font-size: 13px;
+    text-anchor: middle;
+  }
+  .ptA circle {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 60% 55%);
+    stroke-width: 2;
+  }
+  .ptB rect {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 40% 65%);
+    stroke-width: 2;
+  }
+  .sv rect,
+  .sv circle {
+    fill: hsl(var(--era-hue) 85% 60% / 0.25);
+    stroke: hsl(var(--era-hue) 90% 65%);
+    stroke-width: 3;
+  }
+  .svlabel {
+    fill: var(--text-dim);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+</style>

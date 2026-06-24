@@ -1,0 +1,115 @@
+---
+import { getTerm } from "@/lib/glossary";
+
+interface Props {
+  id: string;
+}
+const { id } = Astro.props;
+const entry = getTerm(id);
+
+if (!entry && import.meta.env.DEV) {
+  console.warn(`[Term] glossary に id="${id}" が見つかりません`);
+}
+---
+
+{
+  entry ? (
+    <span class="term" data-term tabindex="0" role="button" aria-label={`用語の説明: ${entry.term}`}>
+      <span class="term__label">
+        <slot />
+      </span>
+      <span class="term__pop" data-term-pop role="tooltip">
+        <span class="term__name mono">
+          {entry.term}
+          {entry.reading && <span class="term__reading"> · {entry.reading}</span>}
+        </span>
+        <span class="term__def">{entry.def}</span>
+        {entry.link && (
+          <a class="term__link mono" href={entry.link} target="_blank" rel="noopener noreferrer">
+            → 出典・詳細
+          </a>
+        )}
+      </span>
+    </span>
+  ) : (
+    <slot />
+  )
+}
+
+<style>
+  .term {
+    position: relative;
+    cursor: help;
+    color: hsl(var(--era-hue) 55% 82%);
+    border-bottom: 1px dotted hsl(var(--era-hue) 80% 60%);
+    white-space: nowrap;
+  }
+  .term__label {
+    white-space: normal;
+  }
+  .term:hover,
+  .term:focus-visible {
+    color: hsl(var(--era-hue) 90% 85%);
+    background: hsl(var(--era-hue) 80% 55% / 0.1);
+  }
+
+  .term__pop {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 40;
+    display: block;
+    width: max-content;
+    max-width: min(340px, 78vw);
+    padding: 0.7rem 0.85rem;
+    background: var(--surface);
+    border: 1px solid hsl(var(--era-hue) 70% 55% / 0.55);
+    border-radius: var(--radius-sm);
+    box-shadow:
+      0 10px 30px rgb(0 0 0 / 0.5),
+      0 0 0 1px rgb(0 0 0 / 0.3);
+    white-space: normal;
+    line-height: 1.65;
+    /* 既定は非表示。hover / focus / .is-open で表示 */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition:
+      opacity 0.14s ease,
+      transform 0.14s ease,
+      visibility 0.14s;
+    pointer-events: none;
+  }
+  .term:hover .term__pop,
+  .term:focus-within .term__pop,
+  .term.is-open .term__pop {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .term__name {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: hsl(var(--era-hue) 70% 80%);
+    margin-bottom: 0.3rem;
+  }
+  .term__reading {
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+  .term__def {
+    display: block;
+    font-size: 0.84rem;
+    color: var(--text);
+  }
+  .term__link {
+    display: inline-block;
+    margin-top: 0.45rem;
+    font-size: 0.74rem;
+    color: hsl(var(--era-hue) 90% 72%);
+    border: none;
+  }
+</style>

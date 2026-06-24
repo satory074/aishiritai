@@ -1,0 +1,103 @@
+---
+// McCulloch–Pitts 形式ニューロン：重み付き和 → しきい値 → 0/1 出力
+---
+
+<svg viewBox="0 0 600 240" role="img" aria-label="形式ニューロンの模式図">
+  <!-- edges -->
+  <g class="edge">
+    <line x1="92" y1="60" x2="286" y2="108" />
+    <line x1="92" y1="120" x2="286" y2="120" />
+    <line x1="92" y1="180" x2="286" y2="132" />
+  </g>
+  <!-- weight labels -->
+  <g class="wlabel">
+    <text x="175" y="74">w₁</text>
+    <text x="175" y="112">w₂</text>
+    <text x="175" y="170">w₃</text>
+  </g>
+  <!-- inputs -->
+  <g class="node node--in">
+    <circle cx="70" cy="60" r="20" />
+    <circle cx="70" cy="120" r="20" />
+    <circle cx="70" cy="180" r="20" />
+  </g>
+  <g class="ntext">
+    <text x="70" y="60">x₁</text>
+    <text x="70" y="120">x₂</text>
+    <text x="70" y="180">x₃</text>
+  </g>
+  <!-- summation -->
+  <circle class="node node--sum" cx="320" cy="120" r="36" />
+  <text class="ntext ntext--big" x="320" y="120">Σ</text>
+  <!-- activation (threshold) -->
+  <line class="edge" x1="356" y1="120" x2="404" y2="120" />
+  <rect class="act" x="404" y="92" width="92" height="56" rx="8" />
+  <text class="acttext" x="450" y="114">θ</text>
+  <text class="actsub" x="450" y="134">step</text>
+  <!-- output -->
+  <line class="edge edge--out" x1="496" y1="120" x2="556" y2="120" />
+  <polygon class="arrow" points="556,114 568,120 556,126" />
+  <text class="ntext ntext--out" x="582" y="120">y</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .edge {
+    stroke: var(--border);
+    stroke-width: 2;
+  }
+  .edge--out {
+    stroke: hsl(var(--era-hue) 85% 60%);
+  }
+  .arrow {
+    fill: hsl(var(--era-hue) 85% 60%);
+  }
+  .node--in circle {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 60% 55%);
+    stroke-width: 2;
+  }
+  .node--sum {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2.5;
+  }
+  .act {
+    fill: hsl(var(--era-hue) 60% 50% / 0.12);
+    stroke: hsl(var(--era-hue) 80% 60%);
+    stroke-width: 2;
+  }
+  .ntext {
+    fill: var(--text);
+    font-size: 16px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .ntext--big {
+    fill: #fff;
+    font-size: 26px;
+  }
+  .ntext--out {
+    fill: hsl(var(--era-hue) 85% 72%);
+    font-size: 18px;
+  }
+  .acttext {
+    fill: #fff;
+    font-size: 18px;
+    text-anchor: middle;
+  }
+  .actsub {
+    fill: var(--text-dim);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .wlabel text {
+    fill: var(--text-muted);
+    font-size: 13px;
+    text-anchor: middle;
+  }
+</style>

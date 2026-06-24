@@ -1,0 +1,145 @@
+---
+// 畳み込みニューラルネット：入力画像 → 畳み込み＋プーリングで特徴マップを段階的に抽象化 → 全結合で分類
+---
+
+<svg viewBox="0 0 600 260" role="img" aria-label="畳み込みニューラルネットの処理の流れ">
+  <!-- input image -->
+  <rect class="plane plane--in" x="36" y="78" width="80" height="80" rx="4" />
+  <g class="grid">
+    <line x1="56" y1="78" x2="56" y2="158" />
+    <line x1="76" y1="78" x2="76" y2="158" />
+    <line x1="96" y1="78" x2="96" y2="158" />
+    <line x1="36" y1="98" x2="116" y2="98" />
+    <line x1="36" y1="118" x2="116" y2="118" />
+    <line x1="36" y1="138" x2="116" y2="138" />
+  </g>
+  <rect class="kernel" x="36" y="78" width="20" height="20" />
+  <text class="cap" x="76" y="178">入力画像</text>
+
+  <!-- conv feature maps (stack) -->
+  <rect class="plane plane--map" x="172" y="86" width="62" height="62" rx="3" />
+  <rect class="plane plane--map" x="166" y="80" width="62" height="62" rx="3" />
+  <rect class="plane plane--map plane--top" x="160" y="74" width="62" height="62" rx="3" />
+  <text class="cap" x="194" y="178">畳み込み</text>
+  <text class="sub" x="194" y="194">特徴マップ</text>
+
+  <!-- pooling maps (smaller stack) -->
+  <rect class="plane plane--pool" x="296" y="92" width="42" height="42" rx="3" />
+  <rect class="plane plane--pool" x="290" y="86" width="42" height="42" rx="3" />
+  <rect class="plane plane--pool plane--top" x="284" y="80" width="42" height="42" rx="3" />
+  <text class="cap" x="312" y="178">プーリング</text>
+  <text class="sub" x="312" y="194">縮小・頑健化</text>
+
+  <!-- fully connected -->
+  <g class="fc-edges">
+    <line x1="392" y1="118" x2="470" y2="84" />
+    <line x1="392" y1="118" x2="470" y2="118" />
+    <line x1="392" y1="118" x2="470" y2="152" />
+  </g>
+  <g class="node node--fc">
+    <circle cx="470" cy="84" r="11" />
+    <circle cx="470" cy="118" r="11" />
+    <circle cx="470" cy="152" r="11" />
+  </g>
+  <text class="cap" x="470" y="178">全結合</text>
+
+  <!-- output -->
+  <g class="out-edges">
+    <line x1="481" y1="84" x2="540" y2="112" />
+    <line x1="481" y1="118" x2="540" y2="118" />
+    <line x1="481" y1="152" x2="540" y2="124" />
+  </g>
+  <rect class="out" x="540" y="100" width="40" height="36" rx="6" />
+  <text class="outtext" x="560" y="118">y</text>
+  <text class="cap" x="560" y="178">クラス</text>
+
+  <!-- flow arrows between blocks -->
+  <g class="flow">
+    <line x1="122" y1="118" x2="152" y2="106" />
+    <line x1="228" y1="106" x2="276" y2="102" />
+  </g>
+  <polygon class="flow-arrow" points="152,106 142,102 145,112" />
+  <polygon class="flow-arrow" points="276,102 266,98 269,108" />
+
+  <!-- title band -->
+  <text class="dir" x="300" y="34">局所特徴 → 抽象的な特徴 → 分類</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .plane {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 60% 55%);
+    stroke-width: 1.5;
+  }
+  .plane--in {
+    fill: var(--surface);
+    stroke: var(--text-muted);
+  }
+  .plane--map {
+    fill: hsl(var(--era-hue) 55% 50% / 0.16);
+  }
+  .plane--pool {
+    fill: hsl(var(--era-hue) 60% 52% / 0.24);
+  }
+  .plane--top {
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2;
+  }
+  .grid line {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .kernel {
+    fill: hsl(var(--era-hue) 85% 60% / 0.35);
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2;
+  }
+  .fc-edges line,
+  .out-edges line {
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .node--fc circle {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 80% 60%);
+    stroke-width: 2;
+  }
+  .out {
+    fill: hsl(var(--era-hue) 60% 50% / 0.12);
+    stroke: hsl(var(--era-hue) 80% 60%);
+    stroke-width: 2;
+  }
+  .outtext {
+    fill: hsl(var(--era-hue) 85% 72%);
+    font-size: 16px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .flow line {
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2;
+  }
+  .flow-arrow {
+    fill: hsl(var(--era-hue) 85% 62%);
+  }
+  .cap {
+    fill: var(--text-muted);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .sub {
+    fill: var(--text-dim);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+  .dir {
+    fill: var(--text-dim);
+    font-size: 13px;
+    text-anchor: middle;
+  }
+</style>

@@ -1,0 +1,152 @@
+---
+order: 7
+title: "Transformerと大規模事前学習"
+subtitle: "「注意こそすべて」。生成AIの心臓部が生まれる。"
+period: "2017–2020"
+summary: "自己注意だけで系列を処理するTransformerが登場。BERTとGPTが事前学習→転移の威力を示し、スケーリング則が巨大化を正当化する。"
+topics: ["Transformer", "自己注意", "BERT", "GPT", "スケーリング則"]
+hue: 308
+people: ["vaswani", "radford", "bengio"]
+---
+
+import TfAttention from "@/components/figures/TfAttention.astro";
+
+前章で、機械は囲碁という意思決定の頂を越えました。認識（画像）と意思決定（強化学習）の次に残された大きな問いは——**言語**です。
+だが言語は厄介でした。単語の意味は前後の文脈で変わり、依存関係は文をまたいで遠くまで伸びる。
+この章の主役は、その難問を真正面から解いた驚くほど単純なアイデア——**注意（attention）だけで系列を処理する**——です。
+
+## 概要：逐次処理という足かせを外す
+
+<Term id="rnn">RNN</Term> や <Term id="lstm">LSTM</Term> は系列を**左から順に**読み、隠れ状態に文脈を畳み込んでいきます。
+この逐次性が二重の足かせでした。第一に、時刻 $t$ の計算が $t-1$ の結果を待つため**並列化できない**。
+第二に、遠く離れた語の関係は多数のステップを経て伝わるしかなく、勾配消失も相まって**長距離依存が学びにくい**。
+
+2017年、Vaswani らの『Attention Is All You Need』はこの前提ごと捨てました。
+再帰も畳み込みも使わず、系列内の任意の二語を**一度の演算で直接結ぶ** <Term id="self-attention">自己注意</Term> だけで <Term id="transformer">Transformer</Term> を組み立てたのです。
+すべての位置を同時に計算できるため、GPU の並列性をフルに使え、モデルとデータの**大規模化**が現実的になりました。
+この「大きくしやすさ」こそが、続く <Term id="bert">BERT</Term>・<Term id="gpt">GPT</Term> と <Term id="scaling-law">スケーリング則</Term> を経て、生成AIの土台を据えることになります。
+
+<PersonCard id="vaswani" />
+
+## 主要マイルストーン
+
+<Milestone year="2017" title="Transformer（Attention Is All You Need）">
+  Vaswani ら（Google）が、再帰も畳み込みも使わず<Term id="self-attention">自己注意</Term>だけで系列を処理する<Term id="transformer">Transformer</Term>を提案。並列学習に向き、機械翻訳で当時の最高精度を更新した。
+</Milestone>
+
+<Milestone year="2018" title="GPT-1（生成的事前学習）">
+  OpenAI が、Transformer デコーダで「次の語を当てる」<Term id="pretraining">事前学習</Term>を行い、各タスクへ<Term id="fine-tuning">微調整</Term>する <Term id="gpt">GPT</Term> を発表。生成系の事前学習路線の出発点。
+</Milestone>
+
+<Milestone year="2018" title="BERT（双方向事前学習）">
+  Google が、文中の語を隠して両側の文脈から当てる<Term id="bert">BERT</Term>を発表。多数の言語理解ベンチマークを一気に塗り替え、「<Term id="pretraining">事前学習</Term>→<Term id="fine-tuning">微調整</Term>」を標準形にした。
+</Milestone>
+
+<Milestone year="2019" title="GPT-2">
+  約15億パラメータの GPT-2 が、追加学習なしでも流暢な長文を生成。規模を上げるほど汎用的にこなせる兆しを見せ、生成能力の質的飛躍を印象づけた。
+</Milestone>
+
+<Milestone year="2020" title="GPT-3（few-shot 学習）">
+  約1750億パラメータの GPT-3 が、重みを更新せず**プロンプトの例だけ**でタスクに適応する <Term id="transfer-learning">in-context な few-shot 学習</Term>を示し、規模がもたらす創発的な能力を世に知らしめた。
+</Milestone>
+
+<Milestone year="2020" title="スケーリング則">
+  Kaplan らが、損失がパラメータ・データ・計算量の<Term id="scaling-law">冪乗則</Term>で予測的に下がることを実証。「大きくすれば賢くなる」を定量化し、巨大モデル開発を正当化した。
+</Milestone>
+
+## 技術の中身①：自己注意 — Query・Key・Value
+
+自己注意の発想は単純です。ある語の表現を更新するとき、その語自身が「いま何を探しているか」を <Term id="attention">クエリ</Term>（Query）として、
+他の各語が「自分は何者か」を **Key**、「実際に渡す中身」を **Value** として持つ。
+クエリと各キーの**相性**を測り、相性の高い語の Value を重く混ぜ込む——それだけです。
+
+入力の各トークン表現 $x_i$ を、学習可能な行列で三つに射影します。
+
+$$
+Q = X W^Q,\quad K = X W^K,\quad V = X W^V
+$$
+
+そして全クエリと全キーの内積で関連度を測り、<Term id="softmax">ソフトマックス</Term>で重みに変え、Value を加重平均します。
+
+$$
+\mathrm{Attention}(Q,K,V) = \mathrm{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
+$$
+
+ここで $QK^\top$ は全トークン対の関連度を並べた行列、$\mathrm{softmax}$ は各行を合計1の重みに正規化します。
+注目すべきは、どんなに離れた語の対でも**たった1回の行列積で直接結ばれる**こと。RNN のように何ステップも待つ必要がありません。
+
+<Figure caption="自己注意：query が系列内の全 key との相性 αᵢ を重みに、対応する value を加重平均して情報を集める。線の太さが注意の重みに対応する。" label="FIG 7.1">
+  <TfAttention />
+</Figure>
+
+### なぜ √dₖ で割るのか
+
+$\sqrt{d_k}$ による割り算（スケーリング）には明確な理由があります。
+キーの次元 $d_k$ が大きいほど、内積 $q \cdot k = \sum_{j=1}^{d_k} q_j k_j$ は多くの項の和になり、分散が $d_k$ に比例して大きくなります。
+$q,k$ の各成分が平均0・分散1なら、内積の分散はおよそ $d_k$、標準偏差は $\sqrt{d_k}$ です。
+
+内積の値が大きくなりすぎると、$\mathrm{softmax}$ はほぼ 0/1 の鋭いピーク（飽和）に張りつき、
+そこでの勾配がほとんど消えて学習が進まなくなります。$\sqrt{d_k}$ で割って分散を1程度に戻すことで、
+softmax を**勾配が流れる滑らかな領域**に保つ——これがスケーリングの目的です。
+
+### マルチヘッドと位置エンコーディング
+
+実際には注意を1組で行わず、$Q,K,V$ を複数の低次元な「ヘッド」に分けて並列に注意を計算し、結果を連結します（マルチヘッド注意）。
+あるヘッドは構文的な係り受け、別のヘッドは共参照、というように**異なる関係を別々の部分空間で**捉えられます。
+
+ただし自己注意には弱点があります。加重平均は和の順序を入れ替えても結果が変わらない——つまり**語順を区別できない**のです。
+「犬が猫を追う」と「猫が犬を追う」が同じになってしまう。そこで各トークンの埋め込みに、位置ごとに異なるベクトルを足す <Term id="positional-encoding">位置エンコーディング</Term> を導入し、系列の順序情報を注入します。
+原論文では、波長を変えた正弦・余弦を使った固定の符号が用いられました。
+
+## 技術の中身②：事前学習パラダイムとスケール
+
+Transformer が真価を発揮したのは、**学習のやり方**と組み合わさったときです。
+鍵は <Term id="pretraining">事前学習</Term>——ラベルのない膨大なテキストで汎用課題を解かせ、言語の一般知識を重みに溜め込んでから、
+個別タスクへ <Term id="transfer-learning">転移</Term>・<Term id="fine-tuning">微調整</Term>する二段構え。ラベル付けの壁を、ネット上の生テキストで一気に回避する発想です。
+この事前学習の課題設計で、二つの系統が生まれました。
+
+- **<Term id="bert">BERT</Term>（双方向・マスク語予測）**：文中の語をランダムに隠し、**両側の文脈**から当てさせる。文全体を見渡す理解（分類・抽出など）に強い。
+- **<Term id="gpt">GPT</Term>（自己回帰・次語予測）**：前の語列だけから**次の語**を当てる。未来を見ない制約ゆえ、そのまま**文章生成**ができる。
+
+どちらも本質は <Term id="language-model">言語モデル</Term>——記号列に確率を与える仕組み——ですが、見る方向が違います。
+GPT が「左から右」に限るのは、生成時に未来の語を覗けないという因果性の要請です（注意行列の上三角をマスクします）。
+
+<PersonCard id="radford" />
+
+### スケーリング則 — 大きくすれば、本当に賢くなる
+
+2020年、Kaplan らはこの路線に強力な後ろ盾を与えました。
+モデルのパラメータ数 $N$、データ量 $D$、計算量 $C$ を増やすほど、検証損失 $L$ が**予測可能な冪乗則**で下がる、という <Term id="scaling-law">スケーリング則</Term> です。
+模式的には次の形をとります。
+
+$$
+L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N}
+$$
+
+両対数グラフで**まっすぐな直線**になるこの関係は、決定的な意味を持ちました——
+規模を $k$ 倍したとき性能がどこまで伸びるかを、訓練前に見積もれる。つまり巨大化への投資がギャンブルではなく**工学的な計画**になったのです。
+
+これを体現したのが、約1750億パラメータの GPT-3 でした。注目すべきは性能の伸びだけではありません。
+GPT-3 は、重みを一切更新せず**プロンプトに数個の例を並べるだけ**で新しいタスクをこなす **few-shot 学習**（in-context learning）を見せました。
+微調整すら要らず、「やり方を文脈で示せば従う」——規模が一定を超えたとき、明示的に教えていない能力が**創発する**。この観測が、次の時代の起爆剤になります。
+
+## なぜこの時代が重要か → 次の時代へ
+
+この章で、生成AIの**心臓部**が完成しました。
+自己注意による並列化が大規模化の扉を開き、事前学習が世界中の生テキストを栄養に変え、スケーリング則がその巨大化を正当化する——
+**Transformer ×（事前学習→転移）× スケール**という三位一体が、以後のあらゆる大規模言語モデルの設計図になります。
+
+ただし、ここまでのモデルは「次の語を上手に当てる」だけで、まだ**人の役に立つよう振る舞う**ことを学んでいません。
+次章では、この心臓部の上に二つの仕上げが乗ります——ノイズから絵を描き出す <Term id="diffusion">拡散モデル</Term> と、人間の好みでモデルを整える <Term id="rlhf">RLHF</Term>。
+事前学習で得た膨大な知識が、生成と整列を経て、ついに私たちの手元へ降りてきます。生成AIが社会へ広がる、その爆発の入口です。
+
+---
+
+### 原典・参考
+
+- A. Vaswani et al., ["Attention Is All You Need", *NeurIPS* (2017)](https://arxiv.org/abs/1706.03762)
+- J. Devlin et al., ["BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding" (2018)](https://arxiv.org/abs/1810.04805)
+- A. Radford et al., "Improving Language Understanding by Generative Pre-Training" (GPT-1, 2018)
+- A. Radford et al., "Language Models are Unsupervised Multitask Learners" (GPT-2, 2019)
+- T. Brown et al., ["Language Models are Few-Shot Learners", *NeurIPS* (GPT-3, 2020)](https://arxiv.org/abs/2005.14165)
+- J. Kaplan et al., ["Scaling Laws for Neural Language Models" (2020)](https://arxiv.org/abs/2001.08361)

@@ -1,0 +1,96 @@
+---
+import { siteLink } from "@/lib/url";
+
+interface NavItem {
+  id: string;
+  title: string;
+  order: number;
+}
+interface Props {
+  prev?: NavItem;
+  next?: NavItem;
+}
+const { prev, next } = Astro.props;
+---
+
+<nav class="enav not-prose">
+  {
+    prev ? (
+      <a class="enav__item enav__item--prev" href={siteLink(`/eras/${prev.id}`)}>
+        <span class="enav__dir mono">← 前の時代</span>
+        <span class="enav__title">
+          <span class="enav__num mono">{String(prev.order).padStart(2, "0")}</span>
+          {prev.title}
+        </span>
+      </a>
+    ) : (
+      <a class="enav__item enav__item--prev" href={siteLink("/")}>
+        <span class="enav__dir mono">← 目次へ</span>
+        <span class="enav__title">AIの歴史 トップ</span>
+      </a>
+    )
+  }
+  {
+    next ? (
+      <a class="enav__item enav__item--next" href={siteLink(`/eras/${next.id}`)}>
+        <span class="enav__dir mono">次の時代 →</span>
+        <span class="enav__title">
+          <span class="enav__num mono">{String(next.order).padStart(2, "0")}</span>
+          {next.title}
+        </span>
+      </a>
+    ) : (
+      <a class="enav__item enav__item--next" href={siteLink("/")}>
+        <span class="enav__dir mono">目次へ →</span>
+        <span class="enav__title">全8章を見る</span>
+      </a>
+    )
+  }
+</nav>
+
+<style>
+  .enav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+    margin-top: 3rem;
+  }
+  @media (max-width: 560px) {
+    .enav {
+      grid-template-columns: 1fr;
+    }
+  }
+  .enav__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    transition:
+      border-color 0.16s ease,
+      background 0.16s ease;
+  }
+  .enav__item:hover {
+    border-color: hsl(var(--era-hue) 80% 55% / 0.6);
+    background: var(--surface-2);
+  }
+  .enav__item--next {
+    text-align: right;
+  }
+  .enav__dir {
+    font-size: 0.74rem;
+    color: hsl(var(--era-hue) 80% 68%);
+  }
+  .enav__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .enav__num {
+    color: var(--text-dim);
+    margin-right: 0.4rem;
+  }
+</style>

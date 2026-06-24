@@ -1,0 +1,90 @@
+---
+// 自己注意：あるトークン（query）が系列内の全トークン（key/value）への重みで情報を集める
+---
+
+<svg viewBox="0 0 600 280" role="img" aria-label="自己注意の模式図">
+  <!-- attention edges from query token to all tokens -->
+  <g class="edge">
+    <line x1="300" y1="208" x2="90" y2="92" />
+    <line x1="300" y1="208" x2="230" y2="92" />
+    <line x1="300" y1="208" x2="370" y2="92" />
+    <line x1="300" y1="208" x2="510" y2="92" />
+  </g>
+  <!-- attention weight labels -->
+  <g class="wlabel">
+    <text x="168" y="156">α₁</text>
+    <text x="258" y="150">α₂</text>
+    <text x="346" y="150">α₃</text>
+    <text x="430" y="156">α₄</text>
+  </g>
+  <!-- key/value tokens (top row) -->
+  <g class="node node--kv">
+    <circle cx="90" cy="72" r="22" />
+    <circle cx="230" cy="72" r="22" />
+    <circle cx="370" cy="72" r="22" />
+    <circle cx="510" cy="72" r="22" />
+  </g>
+  <g class="ntext">
+    <text x="90" y="72">k₁</text>
+    <text x="230" y="72">k₂</text>
+    <text x="370" y="72">k₃</text>
+    <text x="510" y="72">k₄</text>
+  </g>
+  <!-- query token (bottom) -->
+  <circle class="node node--q" cx="300" cy="228" r="28" />
+  <text class="ntext ntext--big" x="300" y="228">q</text>
+  <!-- caption labels -->
+  <text class="lbl" x="300" y="20">keys / values（系列の全トークン）</text>
+  <text class="lbl lbl--q" x="300" y="270">query（注目するトークン）</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .edge {
+    stroke: hsl(var(--era-hue) 70% 58%);
+    stroke-width: 2;
+  }
+  .edge line:nth-child(2) {
+    stroke-width: 4;
+  }
+  .edge line:nth-child(3) {
+    stroke-width: 3;
+  }
+  .node--kv circle {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 60% 55%);
+    stroke-width: 2;
+  }
+  .node--q {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2.5;
+  }
+  .ntext {
+    fill: var(--text);
+    font-size: 16px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .ntext--big {
+    fill: hsl(var(--era-hue) 85% 72%);
+    font-size: 22px;
+  }
+  .wlabel text {
+    fill: var(--text-muted);
+    font-size: 13px;
+    text-anchor: middle;
+  }
+  .lbl {
+    fill: var(--text-dim);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .lbl--q {
+    fill: hsl(var(--era-hue) 60% 65%);
+  }
+</style>

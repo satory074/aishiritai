@@ -1,0 +1,230 @@
+{
+  "turing": {
+    "name": "アラン・チューリング",
+    "en": "Alan Turing",
+    "born": 1912,
+    "died": 1954,
+    "role": "数学者・計算機科学と人工知能の理論的基礎を築いた",
+    "works": [
+      "チューリングマシンによる計算可能性の定式化 (1936)",
+      "論文『計算する機械と知能』とチューリング・テスト (1950)",
+      "第二次大戦中の暗号解読（Bombe / Enigma）"
+    ],
+    "links": [
+      { "label": "Computing Machinery and Intelligence (1950)", "url": "https://academic.oup.com/mind/article/LIX/236/433/986238" }
+    ]
+  },
+  "mcculloch": {
+    "name": "ウォーレン・マカロック",
+    "en": "Warren McCulloch",
+    "born": 1898,
+    "died": 1969,
+    "role": "神経生理学者。ピッツと共に最初の人工ニューロンを数理化",
+    "works": [
+      "ピッツとの共著『神経活動に内在する観念の論理計算』(1943)",
+      "形式ニューロン（McCulloch-Pitts モデル）の提案"
+    ]
+  },
+  "pitts": {
+    "name": "ウォルター・ピッツ",
+    "en": "Walter Pitts",
+    "born": 1923,
+    "died": 1969,
+    "role": "論理学者。形式ニューロンの数理モデルを共同で構築",
+    "works": ["マカロックとの形式ニューロン論文 (1943)"]
+  },
+  "mccarthy": {
+    "name": "ジョン・マッカーシー",
+    "en": "John McCarthy",
+    "born": 1927,
+    "died": 2011,
+    "role": "「人工知能 (Artificial Intelligence)」という語の命名者",
+    "works": [
+      "ダートマス会議の提案・主催 (1956)",
+      "プログラミング言語 LISP の開発 (1958)",
+      "チューリング賞 (1971)"
+    ]
+  },
+  "minsky": {
+    "name": "マービン・ミンスキー",
+    "en": "Marvin Minsky",
+    "born": 1927,
+    "died": 2016,
+    "role": "AI 研究の草分け。MIT 人工知能研究所を共同設立",
+    "works": [
+      "パパートとの共著『Perceptrons』でパーセプトロンの限界を示す (1969)",
+      "知識表現「フレーム理論」",
+      "チューリング賞 (1969)"
+    ]
+  },
+  "rosenblatt": {
+    "name": "フランク・ローゼンブラット",
+    "en": "Frank Rosenblatt",
+    "born": 1928,
+    "died": 1971,
+    "role": "心理学者。学習する人工ニューラルネットの先駆者",
+    "works": [
+      "パーセプトロンの提案と収束定理 (1958)",
+      "ハードウェア実装 Mark I Perceptron"
+    ]
+  },
+  "fukushima": {
+    "name": "福島邦彦",
+    "en": "Kunihiko Fukushima",
+    "born": 1936,
+    "role": "畳み込みニューラルネットの原型を生んだ日本の研究者",
+    "works": [
+      "ネオコグニトロンの提案 (1979/1980)",
+      "局所受容野と階層的特徴抽出のアイデア（後の CNN の源流）"
+    ]
+  },
+  "hopfield": {
+    "name": "ジョン・ホップフィールド",
+    "en": "John Hopfield",
+    "born": 1933,
+    "role": "物理学者。連想記憶ネットワークでニューラルネット復権の口火を切る",
+    "works": [
+      "ホップフィールド・ネットワーク (1982)",
+      "ニューラルネット研究へのノーベル物理学賞 (2024, ヒントンと共同)"
+    ]
+  },
+  "rumelhart": {
+    "name": "デビッド・ラメルハート",
+    "en": "David Rumelhart",
+    "born": 1942,
+    "died": 2011,
+    "role": "認知科学者。誤差逆伝播法を広めた中心人物",
+    "works": [
+      "ヒントン・ウィリアムズとの誤差逆伝播論文 (1986)",
+      "並列分散処理 (PDP) 研究"
+    ]
+  },
+  "hinton": {
+    "name": "ジェフリー・ヒントン",
+    "en": "Geoffrey Hinton",
+    "born": 1947,
+    "role": "「ディープラーニングの父」。多くのブレイクスルーの中心に立つ",
+    "works": [
+      "誤差逆伝播の普及 (1986)",
+      "深層信念ネットワークと層ごと事前学習 (2006)",
+      "AlexNet による ImageNet 制覇 (2012)",
+      "チューリング賞 (2018)・ノーベル物理学賞 (2024)"
+    ]
+  },
+  "lecun": {
+    "name": "ヤン・ルカン",
+    "en": "Yann LeCun",
+    "born": 1960,
+    "role": "畳み込みニューラルネットを実用化したパイオニア",
+    "works": [
+      "LeNet-5 による手書き数字認識 (1998)",
+      "Meta AI（FAIR）初代所長",
+      "チューリング賞 (2018)"
+    ]
+  },
+  "bengio": {
+    "name": "ヨシュア・ベンジオ",
+    "en": "Yoshua Bengio",
+    "born": 1964,
+    "role": "深層学習理論と言語モデルの基礎を築いた研究者",
+    "works": [
+      "ニューラル言語モデル (2003)",
+      "アテンション機構の初期研究 (2014)",
+      "チューリング賞 (2018)"
+    ]
+  },
+  "schmidhuber": {
+    "name": "ユルゲン・シュミットフーバー",
+    "en": "Jürgen Schmidhuber",
+    "born": 1963,
+    "role": "長期記憶を扱う再帰ネットの生みの親",
+    "works": [
+      "ホッフライターとの LSTM (1997)",
+      "メタ学習・自己改善エージェントの研究"
+    ]
+  },
+  "hochreiter": {
+    "name": "ゼップ・ホッフライター",
+    "en": "Sepp Hochreiter",
+    "born": 1967,
+    "role": "勾配消失問題を定式化し LSTM を考案",
+    "works": ["勾配消失問題の分析と LSTM (1997)"]
+  },
+  "vapnik": {
+    "name": "ウラジミール・ヴァプニク",
+    "en": "Vladimir Vapnik",
+    "born": 1936,
+    "role": "統計的学習理論とサポートベクターマシンの創始者",
+    "works": [
+      "VC 理論（統計的学習理論）",
+      "コルテスとのサポートベクターマシン (1995)"
+    ]
+  },
+  "li": {
+    "name": "フェイフェイ・リー",
+    "en": "Fei-Fei Li",
+    "born": 1976,
+    "role": "大規模画像データセットでディープラーニングの土壌を作った",
+    "works": [
+      "ImageNet の構築 (2009)",
+      "ILSVRC コンペティションの主導",
+      "スタンフォード HAI 共同所長"
+    ]
+  },
+  "krizhevsky": {
+    "name": "アレックス・クリジェフスキー",
+    "en": "Alex Krizhevsky",
+    "role": "ディープラーニング革命の引き金 AlexNet の筆頭著者",
+    "works": ["AlexNet による ImageNet 2012 優勝（誤差を一気に低減）"]
+  },
+  "sutskever": {
+    "name": "イリヤ・サツケバー",
+    "en": "Ilya Sutskever",
+    "born": 1986,
+    "role": "AlexNet から大規模言語モデルまで関与した研究者",
+    "works": [
+      "AlexNet 共著 (2012)",
+      "seq2seq 学習 (2014)",
+      "OpenAI 共同創業・チーフサイエンティスト"
+    ]
+  },
+  "goodfellow": {
+    "name": "イアン・グッドフェロー",
+    "en": "Ian Goodfellow",
+    "born": 1985,
+    "role": "生成モデルの一時代を作った GAN の考案者",
+    "works": ["敵対的生成ネットワーク (GAN) の提案 (2014)", "教科書『Deep Learning』共著"]
+  },
+  "hassabis": {
+    "name": "デミス・ハサビス",
+    "en": "Demis Hassabis",
+    "born": 1976,
+    "role": "DeepMind を率い、強化学習で囲碁・科学に挑んだ",
+    "works": [
+      "DeepMind 共同創業 (2010)",
+      "AlphaGo / AlphaZero / AlphaFold",
+      "ノーベル化学賞 (2024, AlphaFold)"
+    ]
+  },
+  "silver": {
+    "name": "デビッド・シルバー",
+    "en": "David Silver",
+    "role": "AlphaGo シリーズの強化学習を主導した研究者",
+    "works": [
+      "AlphaGo / AlphaGo Zero / AlphaZero の中心開発者",
+      "深層強化学習（DQN）研究"
+    ]
+  },
+  "vaswani": {
+    "name": "アシシュ・ヴァスワニ",
+    "en": "Ashish Vaswani",
+    "role": "現代の生成AIを支える Transformer の筆頭著者",
+    "works": ["論文『Attention Is All You Need』筆頭著者 (2017)"]
+  },
+  "radford": {
+    "name": "アレック・ラドフォード",
+    "en": "Alec Radford",
+    "role": "GPT・CLIP など OpenAI の生成モデルを牽引",
+    "works": ["GPT-1/2 (2018–2019)", "CLIP (2021)"]
+  }
+}

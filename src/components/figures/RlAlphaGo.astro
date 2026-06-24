@@ -1,0 +1,181 @@
+---
+// 強化学習ループ（左）と AlphaGo の探索（右）：エージェント↔環境の報酬ループ／方策ネット・価値ネット・MCTS の融合
+---
+
+<svg viewBox="0 0 640 280" role="img" aria-label="強化学習の報酬ループとAlphaGoの探索の模式図">
+  <!-- ===== 左：エージェント↔環境の報酬ループ ===== -->
+  <text class="title" x="150" y="28">強化学習ループ</text>
+
+  <rect class="box box--agent" x="40" y="60" width="120" height="56" rx="10" />
+  <text class="boxtext" x="100" y="88">エージェント</text>
+
+  <rect class="box box--env" x="40" y="190" width="120" height="56" rx="10" />
+  <text class="boxtext" x="100" y="218">環境</text>
+
+  <!-- 行動 a：下向き -->
+  <line class="edge edge--act" x1="80" y1="116" x2="80" y2="190" />
+  <polygon class="arrow arrow--act" points="74,184 80,196 86,184" />
+  <text class="elabel" x="58" y="156">行動 a</text>
+
+  <!-- 状態s・報酬r：上向き -->
+  <line class="edge edge--obs" x1="124" y1="190" x2="124" y2="116" />
+  <polygon class="arrow arrow--obs" points="118,122 124,110 130,122" />
+  <text class="elabel elabel--r" x="150" y="148">状態 s</text>
+  <text class="elabel elabel--r" x="150" y="166">報酬 r</text>
+
+  <!-- 区切り線 -->
+  <line class="divider" x1="300" y1="44" x2="300" y2="252" />
+
+  <!-- ===== 右：AlphaGo の融合 ===== -->
+  <text class="title" x="480" y="28">AlphaGo の探索</text>
+
+  <!-- 盤面（局面 s） -->
+  <rect class="box box--pos" x="360" y="62" width="96" height="52" rx="8" />
+  <text class="boxtext" x="408" y="84">局面 s</text>
+  <text class="boxsub" x="408" y="102">（盤面）</text>
+
+  <!-- 方策ネット -->
+  <rect class="box box--policy" x="500" y="50" width="112" height="40" rx="8" />
+  <text class="netname" x="556" y="74">方策ネット p</text>
+
+  <!-- 価値ネット -->
+  <rect class="box box--value" x="500" y="108" width="112" height="40" rx="8" />
+  <text class="netname" x="556" y="132">価値ネット v</text>
+
+  <line class="edge edge--net" x1="456" y1="80" x2="500" y2="70" />
+  <polygon class="arrow arrow--net" points="494,66 506,70 495,76" />
+  <line class="edge edge--net" x1="456" y1="96" x2="500" y2="126" />
+  <polygon class="arrow arrow--net" points="494,121 506,128 493,132" />
+
+  <!-- MCTS -->
+  <rect class="box box--mcts" x="430" y="186" width="152" height="48" rx="10" />
+  <text class="netname netname--mcts" x="506" y="206">モンテカルロ木探索</text>
+  <text class="boxsub" x="506" y="224">枝刈り p ／ 評価 v</text>
+
+  <line class="edge edge--feed" x1="556" y1="90" x2="540" y2="186" />
+  <polygon class="arrow arrow--net" points="535,180 542,191 547,179" />
+  <line class="edge edge--feed" x1="556" y1="148" x2="566" y2="186" />
+  <polygon class="arrow arrow--net" points="561,180 569,191 572,179" />
+
+  <!-- 次の手 -->
+  <line class="edge edge--out" x1="430" y1="210" x2="372" y2="210" />
+  <polygon class="arrow arrow--out" points="372,204 360,210 372,216" />
+  <text class="elabel elabel--move" x="402" y="248">次の一手</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 640px;
+    font-family: var(--font-mono);
+  }
+  .title {
+    fill: var(--text);
+    font-size: 15px;
+    text-anchor: middle;
+    font-weight: 700;
+  }
+  .divider {
+    stroke: var(--border);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 5;
+  }
+  .box {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 60% 55%);
+    stroke-width: 2;
+  }
+  .box--agent {
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2.5;
+  }
+  .box--env {
+    fill: var(--surface);
+  }
+  .box--policy {
+    fill: hsl(var(--era-hue) 60% 50% / 0.14);
+    stroke: hsl(var(--era-hue) 85% 62%);
+  }
+  .box--value {
+    fill: hsl(var(--era-hue) 60% 50% / 0.08);
+    stroke: hsl(var(--era-hue) 70% 58%);
+  }
+  .box--mcts {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 85% 60%);
+    stroke-width: 2.5;
+  }
+  .box--pos {
+    fill: var(--surface);
+  }
+  .boxtext {
+    fill: var(--text);
+    font-size: 14px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .boxsub {
+    fill: var(--text-muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .netname {
+    fill: var(--text);
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .netname--mcts {
+    fill: hsl(var(--era-hue) 85% 72%);
+    font-size: 13px;
+  }
+  .edge {
+    stroke: var(--border);
+    stroke-width: 2;
+  }
+  .edge--act {
+    stroke: hsl(var(--era-hue) 85% 60%);
+  }
+  .edge--obs {
+    stroke: hsl(var(--era-hue) 55% 60%);
+  }
+  .edge--net {
+    stroke: hsl(var(--era-hue) 60% 58%);
+  }
+  .edge--feed {
+    stroke: hsl(var(--era-hue) 60% 58%);
+  }
+  .edge--out {
+    stroke: hsl(var(--era-hue) 85% 60%);
+    stroke-width: 2.5;
+  }
+  .arrow {
+    fill: var(--border);
+  }
+  .arrow--act {
+    fill: hsl(var(--era-hue) 85% 60%);
+  }
+  .arrow--obs {
+    fill: hsl(var(--era-hue) 55% 60%);
+  }
+  .arrow--net {
+    fill: hsl(var(--era-hue) 60% 58%);
+  }
+  .arrow--out {
+    fill: hsl(var(--era-hue) 85% 60%);
+  }
+  .elabel {
+    fill: var(--text-muted);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .elabel--r {
+    fill: hsl(var(--era-hue) 70% 65%);
+    text-anchor: start;
+  }
+  .elabel--move {
+    fill: hsl(var(--era-hue) 85% 72%);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+</style>

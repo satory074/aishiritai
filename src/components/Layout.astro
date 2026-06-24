@@ -1,0 +1,85 @@
+---
+import "@/styles/globals.css";
+import "katex/dist/katex.min.css";
+import SiteHeader from "@/components/SiteHeader.astro";
+import SiteFooter from "@/components/SiteFooter.astro";
+import { absUrl } from "@/lib/url";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** 時代ページの色相（188〜322）。未指定はシアン基調。 */
+  eraHue?: number;
+  /** ヘッダーを出すか（トップは hero に統合するため任意で消せる） */
+  showHeader?: boolean;
+}
+
+const SITE_NAME = "aishiritai — AIの歴史";
+const {
+  title,
+  description = "チューリングの『考える機械』から生成AIまで。AIの歴史を、技術の中身（数式・アーキテクチャ・論文）まで踏み込んで時代順にたどる学習サイト。",
+  eraHue = 190,
+  showHeader = true,
+} = Astro.props;
+
+const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+const ogImage = absUrl("/og.png");
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+
+    <!-- OGP -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Fonts: JetBrains Mono（等幅ラベル・年号・コード用） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body style={`--era-hue: ${eraHue}`}>
+    {showHeader && <SiteHeader />}
+    <slot />
+    <SiteFooter />
+
+    <!-- 用語ポップ：モバイル（タップ）トグル。デスクトップは CSS hover/focus で動く。 -->
+    <script>
+      document.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        const trigger = target.closest<HTMLElement>("[data-term]");
+        // 開いている他の用語を閉じる
+        document.querySelectorAll<HTMLElement>("[data-term].is-open").forEach((el) => {
+          if (el !== trigger) el.classList.remove("is-open");
+        });
+        if (trigger) {
+          // ポップ内のリンク等を踏んだときはトグルしない
+          if (!target.closest("[data-term-pop]")) {
+            e.preventDefault();
+            trigger.classList.toggle("is-open");
+          }
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          document
+            .querySelectorAll<HTMLElement>("[data-term].is-open")
+            .forEach((el) => el.classList.remove("is-open"));
+        }
+      });
+    </script>
+  </body>
+</html>

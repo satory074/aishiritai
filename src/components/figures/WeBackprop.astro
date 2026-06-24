@@ -1,0 +1,132 @@
+---
+// 誤差逆伝播：順伝播で予測 → 損失 L → 連鎖律で δ を後ろ向きに伝える
+---
+
+<svg viewBox="0 0 600 280" role="img" aria-label="誤差逆伝播の模式図">
+  <!-- forward edges (input -> hidden -> output) -->
+  <g class="edge edge--fwd">
+    <line x1="92" y1="80" x2="218" y2="70" />
+    <line x1="92" y1="80" x2="218" y2="150" />
+    <line x1="92" y1="200" x2="218" y2="70" />
+    <line x1="92" y1="200" x2="218" y2="150" />
+    <line x1="250" y1="70" x2="378" y2="140" />
+    <line x1="250" y1="150" x2="378" y2="140" />
+  </g>
+
+  <!-- backward arrows (output -> hidden -> input), dashed -->
+  <g class="edge edge--back">
+    <line x1="376" y1="160" x2="252" y2="166" />
+    <line x1="218" y1="186" x2="94" y2="216" />
+  </g>
+  <polygon class="back-arrow" points="252,166 264,158 263,172" />
+  <polygon class="back-arrow" points="94,216 106,208 105,222" />
+
+  <!-- input layer -->
+  <g class="node node--in">
+    <circle cx="70" cy="80" r="22" />
+    <circle cx="70" cy="200" r="22" />
+  </g>
+  <text class="ntext" x="70" y="80">x₁</text>
+  <text class="ntext" x="70" y="200">x₂</text>
+
+  <!-- hidden layer -->
+  <g class="node node--hid">
+    <circle cx="236" cy="70" r="24" />
+    <circle cx="236" cy="150" r="24" />
+  </g>
+  <text class="ntext" x="236" y="70">h₁</text>
+  <text class="ntext" x="236" y="150">h₂</text>
+
+  <!-- output layer -->
+  <circle class="node node--out" cx="400" cy="140" r="26" />
+  <text class="ntext" x="400" y="140">ŷ</text>
+
+  <!-- loss -->
+  <line class="edge edge--fwd" x1="426" y1="140" x2="486" y2="140" />
+  <rect class="loss" x="486" y="112" width="84" height="56" rx="8" />
+  <text class="losstext" x="528" y="135">L</text>
+  <text class="losssub" x="528" y="155">loss</text>
+
+  <!-- layer captions -->
+  <text class="cap" x="70" y="248">入力</text>
+  <text class="cap" x="236" y="248">隠れ層</text>
+  <text class="cap" x="400" y="248">出力</text>
+
+  <!-- direction labels -->
+  <text class="dir dir--fwd" x="300" y="32">順伝播 →</text>
+  <text class="dir dir--back" x="300" y="262">← δ を逆伝播（連鎖律）</text>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 600px;
+    font-family: var(--font-mono);
+  }
+  .edge {
+    stroke-width: 2;
+    fill: none;
+  }
+  .edge--fwd {
+    stroke: var(--border);
+  }
+  .edge--back {
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2;
+    stroke-dasharray: 5 4;
+  }
+  .back-arrow {
+    fill: hsl(var(--era-hue) 85% 62%);
+  }
+  .node--in circle {
+    fill: var(--surface-2);
+    stroke: var(--text-muted);
+    stroke-width: 2;
+  }
+  .node--hid circle {
+    fill: var(--surface-2);
+    stroke: hsl(var(--era-hue) 60% 55%);
+    stroke-width: 2;
+  }
+  .node--out {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2.5;
+  }
+  .loss {
+    fill: hsl(var(--era-hue) 60% 50% / 0.12);
+    stroke: hsl(var(--era-hue) 80% 60%);
+    stroke-width: 2;
+  }
+  .ntext {
+    fill: var(--text);
+    font-size: 15px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .losstext {
+    fill: #fff;
+    font-size: 18px;
+    text-anchor: middle;
+  }
+  .losssub {
+    fill: var(--text-dim);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .cap {
+    fill: var(--text-muted);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .dir {
+    font-size: 13px;
+    text-anchor: middle;
+  }
+  .dir--fwd {
+    fill: var(--text-dim);
+  }
+  .dir--back {
+    fill: hsl(var(--era-hue) 85% 72%);
+  }
+</style>

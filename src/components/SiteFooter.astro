@@ -1,0 +1,40 @@
+---
+import { siteLink } from "@/lib/url";
+---
+
+<footer class="ftr">
+  <div class="wrap ftr__inner">
+    <p class="ftr__line mono">
+      <span class="ftr__prompt">&gt;_</span> aishiritai — チューリングから生成AIまで、AIの歴史を技術の中身から学ぶ
+    </p>
+    <p class="ftr__meta">
+      個人制作の学習用サイト。内容は概説であり、正確な年代・主張は
+      <a href={siteLink("/glossary")}>用語集</a>・原論文を参照のこと。
+    </p>
+  </div>
+</footer>
+
+<style>
+  .ftr {
+    margin-top: 5rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-soft);
+  }
+  .ftr__inner {
+    padding-block: 2.2rem 3rem;
+  }
+  .ftr__line {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem;
+  }
+  .ftr__prompt {
+    color: hsl(var(--era-hue) 85% 62%);
+  }
+  .ftr__meta {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin: 0;
+    line-height: 1.7;
+  }
+</style>

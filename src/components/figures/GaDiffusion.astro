@@ -1,0 +1,123 @@
+---
+// 拡散モデル：前向き過程でデータにノイズを加え、逆向き過程をNNで学習して復元する
+---
+
+<svg viewBox="0 0 640 240" role="img" aria-label="拡散モデルの前向き・逆向き過程の模式図">
+  <!-- frames: data x0 ... noise xT -->
+  <g class="frame">
+    <rect x="40" y="86" width="68" height="68" rx="6" />
+    <rect x="200" y="86" width="68" height="68" rx="6" />
+    <rect x="360" y="86" width="68" height="68" rx="6" />
+    <rect x="532" y="86" width="68" height="68" rx="6" />
+  </g>
+  <!-- clean image (x0): a simple shape -->
+  <circle class="data" cx="74" cy="120" r="20" />
+  <!-- intermediate (more speckle each step) -->
+  <g class="speckle speckle--mid">
+    <circle cx="222" cy="106" r="2.4" />
+    <circle cx="246" cy="118" r="2.4" />
+    <circle cx="230" cy="136" r="2.4" />
+    <circle cx="252" cy="132" r="2.4" />
+    <circle cx="214" cy="128" r="2.4" />
+  </g>
+  <g class="speckle speckle--heavy">
+    <circle cx="372" cy="100" r="2.4" /><circle cx="392" cy="110" r="2.4" />
+    <circle cx="414" cy="104" r="2.4" /><circle cx="380" cy="124" r="2.4" />
+    <circle cx="404" cy="126" r="2.4" /><circle cx="368" cy="140" r="2.4" />
+    <circle cx="416" cy="138" r="2.4" /><circle cx="396" cy="144" r="2.4" />
+  </g>
+  <text class="noise" x="566" y="124">noise</text>
+
+  <!-- forward arrows q (top) -->
+  <g class="flow flow--fwd">
+    <line x1="112" y1="74" x2="196" y2="74" />
+    <line x1="272" y1="74" x2="356" y2="74" />
+    <line x1="432" y1="74" x2="528" y2="74" />
+    <polygon points="196,69 208,74 196,79" />
+    <polygon points="356,69 368,74 356,79" />
+    <polygon points="528,69 540,74 528,79" />
+  </g>
+  <text class="lab lab--fwd" x="320" y="56">前向き過程 q：少しずつガウスノイズを加える</text>
+
+  <!-- reverse arrows p (bottom) -->
+  <g class="flow flow--rev">
+    <line x1="528" y1="170" x2="436" y2="170" />
+    <line x1="356" y1="170" x2="276" y2="170" />
+    <line x1="196" y1="170" x2="116" y2="170" />
+    <polygon points="436,165 424,170 436,175" />
+    <polygon points="276,165 264,170 276,175" />
+    <polygon points="116,165 104,170 116,175" />
+  </g>
+  <text class="lab lab--rev" x="320" y="196">逆向き過程 p_θ：ニューラルネットがノイズを除いて復元</text>
+
+  <!-- step labels -->
+  <g class="step">
+    <text x="74" y="172">x₀</text>
+    <text x="234" y="172">x₁</text>
+    <text x="394" y="172">x_t</text>
+    <text x="566" y="172">x_T</text>
+  </g>
+</svg>
+
+<style>
+  svg {
+    width: 100%;
+    max-width: 640px;
+    font-family: var(--font-mono);
+  }
+  .frame rect {
+    fill: var(--surface-2);
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .data {
+    fill: hsl(var(--era-hue) 70% 55%);
+    stroke: hsl(var(--era-hue) 85% 70%);
+    stroke-width: 2;
+  }
+  .speckle circle {
+    fill: hsl(var(--era-hue) 30% 70%);
+  }
+  .speckle--heavy circle {
+    fill: var(--text-muted);
+  }
+  .noise {
+    fill: var(--text-dim);
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .flow line {
+    stroke-width: 2;
+    fill: none;
+  }
+  .flow--fwd line {
+    stroke: hsl(var(--era-hue) 70% 60%);
+  }
+  .flow--fwd polygon {
+    fill: hsl(var(--era-hue) 70% 60%);
+  }
+  .flow--rev line {
+    stroke: hsl(var(--era-hue) 85% 68%);
+    stroke-dasharray: 5 4;
+  }
+  .flow--rev polygon {
+    fill: hsl(var(--era-hue) 85% 68%);
+  }
+  .lab {
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .lab--fwd {
+    fill: hsl(var(--era-hue) 55% 65%);
+  }
+  .lab--rev {
+    fill: hsl(var(--era-hue) 80% 72%);
+  }
+  .step text {
+    fill: var(--text);
+    font-size: 13px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+</style>

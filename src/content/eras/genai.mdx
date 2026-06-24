@@ -1,0 +1,171 @@
+---
+order: 8
+title: "生成AIの爆発"
+subtitle: "言葉も絵も生み出す機械が、社会に降りてきた。"
+period: "2021–現在"
+summary: "拡散モデルが高品質な画像生成を実現し、RLHFで対話を整えたChatGPTが世界を変えた。マルチモーダルな基盤モデルの時代へ。"
+topics: ["拡散モデル", "CLIP", "RLHF", "ChatGPT", "マルチモーダル"]
+hue: 322
+people: ["radford", "sutskever"]
+---
+
+import GaDiffusion from "@/components/figures/GaDiffusion.astro";
+
+前章で<Term id="transformer">Transformer</Term>という器が完成し、それを巨大化すれば賢くなるという<Term id="scaling-law">スケーリング則</Term>が見えました。
+ここから先は、長く積み上げてきた技術が*生成*という一点で結実する物語です。
+言葉を継ぐ巨大な<Term id="language-model">言語モデル</Term>と、ノイズから絵を立ち上げる<Term id="diffusion">拡散モデル</Term>が出会い、
+AIはついに研究室を出て、何億もの人の手のひらに降りてきました。
+
+## 概要：認識から生成へ、研究室から社会へ
+
+それまでのAIの主戦場は、与えられた入力を**分類・認識**することでした。
+猫の写真を「猫」と当てる。文を「肯定的／否定的」と分ける。判別の精度を競う時代です。
+2021年以降に起きたのは、その軸が**生成**へと回転したことでした——
+言葉で指示すれば、見たことのない絵が描かれ、続きの文章が紡がれる。
+
+技術的には、三つの流れが合流しています。
+第一に、<Term id="gan">敵対的生成ネットワーク</Term>に代わる安定した生成器として<Term id="diffusion">拡散モデル</Term>が成熟したこと。
+第二に、画像と言語を同じ空間で結ぶ<Term id="clip">CLIP</Term>が「テキスト→画像」を可能にしたこと。
+第三に、<Term id="rlhf">RLHF</Term>が巨大言語モデルを「ただの次語予測機」から「対話できる相手」へ仕立てたこと。
+この三つが2022年に交差した瞬間、生成AIは社会現象になりました。
+
+そのCLIPとGPTの両系列を実装で牽引したのが、OpenAIのアレック・ラドフォードです。
+
+<PersonCard id="radford" />
+
+## 主要マイルストーン
+
+<Milestone year="2021" title="CLIP と DALL·E">
+  OpenAI が、画像とテキストを同じベクトル空間に対応づける<Term id="clip">CLIP</Term>と、テキストから画像を生成する DALL·E を発表。「言葉で絵を指す」基盤が整った。
+</Milestone>
+
+<Milestone year="2020" title="DDPM（拡散モデルの確立）">
+  Ho らの "Denoising Diffusion Probabilistic Models" が、ノイズ除去を繰り返す<Term id="diffusion">拡散モデル</Term>を高品質な生成手法として再定式化。後の画像生成ブームの数理的な土台となった。
+</Milestone>
+
+<Milestone year="2022" title="Stable Diffusion（オープンな拡散モデル）">
+  潜在空間で拡散を行う Latent Diffusion が公開され、誰でも手元のGPUで高品質画像を生成できるように。生成AIの裾野を一気に広げた。
+</Milestone>
+
+<Milestone year="2022" title="InstructGPT（RLHF）">
+  OpenAI が、人間の選好から<Term id="rlhf">RLHF</Term>で言語モデルを調整。小さくても「指示に従い役立つ」モデルが、巨大な素のモデルを上回る応答をすることを示した。
+</Milestone>
+
+<Milestone year="2022" title="ChatGPT 公開（11月）">
+  InstructGPT 系の対話モデルが無料公開され、5日で利用者100万人。汎用AIが一般の道具になった象徴的な瞬間。
+</Milestone>
+
+<Milestone year="2023" title="GPT-4 とマルチモーダル、群雄割拠">
+  画像も読める<Term id="multimodal">マルチモーダル</Term>な GPT-4 が登場。Anthropic の Claude、Google の Gemini、Meta のオープンな LLaMA など、<Term id="foundation-model">基盤モデル</Term>の競争が本格化した。
+</Milestone>
+
+## 技術の中身①：ノイズから絵を立ち上げる — 拡散モデル
+
+画像生成の主役となった<Term id="diffusion">拡散モデル</Term>の発想は、意外なほど単純です。
+まず、きれいなデータ $\mathbf{x}_0$ に**少しずつガウスノイズを加えて**いき、最終的に純粋なノイズ $\mathbf{x}_T$ に壊す。
+この*前向き過程*は、各ステップで次のように定義されます。
+
+$$
+q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}\!\left(\mathbf{x}_t;\ \sqrt{1-\beta_t}\,\mathbf{x}_{t-1},\ \beta_t \mathbf{I}\right)
+$$
+
+$\beta_t$ は各ステップで加えるノイズの量を決める小さな係数です。
+壊すだけなら誰でもできます。難しいのは**逆向き**——ノイズから元のデータへ戻す過程 $p_\theta(\mathbf{x}_{t-1}\mid\mathbf{x}_t)$ を、
+ニューラルネットに学習させることです。各時刻で「いま乗っているノイズはどれか」を予測させ、それを少し差し引く。
+これを $T$ 回繰り返すと、純粋なノイズが一枚の絵へと結晶していきます。
+
+<Figure caption="拡散モデル：前向き過程 q がデータを徐々にノイズへ壊し、逆向き過程 p_θ（ニューラルネット）がそれを一歩ずつ復元する。生成とは「ノイズからの逆再生」にほかならない。" label="FIG 8.1">
+  <GaDiffusion />
+</Figure>
+
+学習は驚くほど素直で、ネットワークに**加えたノイズ $\boldsymbol{\epsilon}$ を当てさせる**だけの単純な回帰になります。
+
+$$
+\mathcal{L} = \mathbb{E}_{\mathbf{x}_0,\,\boldsymbol{\epsilon},\,t}\left[\ \left\lVert \boldsymbol{\epsilon} - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t) \right\rVert^2\ \right]
+$$
+
+<Term id="gan">GAN</Term>のような不安定な敵対的学習を必要とせず、安定して高解像度の画像が出る——これが拡散モデルが一気に主流へ躍り出た理由です。
+ただし、これだけでは*ランダムな*絵しか出ません。「柴犬が宇宙服を着た写真」のような**狙った絵**を出すには、言語による条件付けが要ります。
+そこで<Term id="clip">CLIP</Term>の出番です。CLIPは膨大な画像とキャプションの対を、同じベクトル空間で「対応するものは近く」なるよう学習しています。
+そのテキスト側の<Term id="embedding">埋め込み</Term>を逆向き過程に注入すれば、ノイズ除去の各ステップが「その言葉が指す方向」へ誘導され、テキスト→画像が成立します。
+
+## 技術の中身②：対話への仕上げ — RLHF
+
+一方の言語側。<Term id="gpt">GPT</Term>に代表される巨大言語モデルは、何兆語ものテキストで「次の語」を当てる事前学習を積んでいます。
+ところが、ここに本質的なねじれがあります。素のモデルは、本質的には**もっともらしい続きを書く確率機**でしかありません。
+「フランスの首都は？」と問えば、答えるより先に*似たような質問文を並べ続ける*ことすらある。
+有用な助言を返すより、ネット上にありがちな文の続きを再現するほうが、訓練目的には忠実だからです。
+
+この溝を埋めたのが<Term id="rlhf">RLHF</Term>（人間のフィードバックによる強化学習）です。手順は三段構え。
+
+- **教師あり微調整**：人間が書いた良い回答例で、まず指示に従う型を覚えさせる。
+- **報酬モデルの学習**：同じ質問への複数の回答を人間に**優劣比較**させ、その選好を再現する報酬モデル $r_\phi$ を作る。
+- **方策の最適化**：その報酬を信号に、PPO などの<Term id="reinforcement-learning">強化学習</Term>で言語モデル本体を更新する。
+
+最適化の目的は、報酬を上げつつ、元のモデルから離れすぎないよう KL ペナルティで抑える形で書けます。
+
+$$
+\max_{\pi_\theta}\ \mathbb{E}_{x \sim \pi_\theta}\!\left[\, r_\phi(x) \,\right] - \beta\, \mathrm{KL}\!\left(\pi_\theta \,\Vert\, \pi_{\text{ref}}\right)
+$$
+
+第二項がなければ、モデルは報酬モデルの隙を突く奇妙な出力（報酬ハッキング）へ暴走します。
+KL の綱で「元の言語能力を保ったまま、人の好みに寄せる」——この匙加減こそが、ChatGPTのあの自然な手触りを生みました。
+InstructGPT が示した教訓は鮮烈でした。*規模より整列（alignment）*。
+1.3B のモデルが、100倍以上大きい素の GPT-3 より好まれたのです。
+
+RLHF を含むGPT系列を初期から率い、OpenAIの方向を定めた一人が、AlexNet から大規模化までを駆け抜けたイリヤ・サツケバーです。
+
+<PersonCard id="sutskever" />
+
+## 技術の中身③：宿命としてのハルシネーション
+
+ただし、整列は万能ではありません。生成AIには構造的な弱点が残ります——<Term id="hallucination">ハルシネーション</Term>です。
+言語モデルは、各時刻で語彙上の確率分布から次の語を選んでいるにすぎません。
+事実かどうかを照合する装置を内蔵しているわけではなく、**もっともらしさ**だけを最大化します。
+だから、存在しない論文を堂々と引用し、もっともらしい嘘を自信たっぷりに述べる。
+これはバグというより、確率的な次語予測という仕組みそのものに由来する*宿命*です。
+
+現在地は、この弱点と折り合う方向に進んでいます。
+外部の検索結果や文書を文脈に与えて答えさせる検索拡張、推論の途中を書き出させる手法、ツールを呼ばせて事実を確かめさせる設計。
+そして<Term id="foundation-model">基盤モデル</Term>は<Term id="multimodal">マルチモーダル</Term>化し、テキストだけでなく画像・音声・コードを横断して扱うようになりました。
+一つの巨大なモデルが、翻訳も要約も画像理解もコード生成もこなす——これが、いまの地平線です。
+
+## 黎明期の問いに、いま
+
+ここで、第1章の問いに立ち返りましょう。チューリングが1950年に投げた問い——**「機械は考えられるか」**。
+彼が知能の判定基準として提案した<Term id="turing-test">チューリング・テスト</Term>、すなわち「対話で人間と区別できなければ知的とみなす」という機能主義は、
+皮肉なほど現実のものになりました。今日の対話モデルは、多くの場面でテストを*事実上*通過してしまいます。
+
+けれど、それで問いに答えが出たわけではありません。
+区別がつかないことと、内側で**考えている**ことは、依然として同じではない。
+ハルシネーションが示すように、流暢さは理解を保証しません。
+チューリングの問いは解かれたのではなく、より精密な姿で私たちの前に残されています。
+
+そしてこの80年は、第1章で芽生えた二つの哲学の長い綱引きでもありました。
+規則で知能を記述する<Term id="gofai">記号主義</Term>と、単純な素子の結合から創発させるコネクショニズム。
+<Term id="formal-neuron">形式ニューロン</Term>に始まり、<Term id="perceptron">パーセプトロン</Term>の挫折、二度のAIの冬を経て、
+データと計算が臨界量に達したとき、コネクショニズムの系譜——ニューラルネットワーク——が圧倒的な実りをもたらしました。
+生成AIは、ボトムアップの学習が記号的な能力（論理・コード・推論）すら*獲得しうる*ことを示しています。
+70年前の対立軸の片方が、いま大きく前に出ているのです。
+
+> 機械が考えられるかと問うことには、議論の意味すらないほどに、言葉と知的な見解は変わっているだろう。
+> <span class="mono">— A. Turing (1950)</span>
+
+では、次の冬は来るのでしょうか。
+スケーリングはいつか頭打ちになり、過剰な期待がまた裏切られて、三度目の冬が訪れるのか。
+それとも、この曲線はまだ折れず、私たちは本物の汎用知能の入口に立っているのか。
+歴史を振り返れば、AIは熱狂と幻滅をくり返してきました。今がどちらの局面なのかは、まだ誰にもわかりません。
+
+確かなのは一つだけ——真空管の部屋で「機械は考えられるか」と問うた人々から続く長い物語の、いまが最も鮮やかな一頁だということ。
+その先に何が描かれるかは、これを読むあなたを含めた、次の世代の手に委ねられています。
+
+---
+
+### 原典・参考
+
+- J. Ho, A. Jain & P. Abbeel, ["Denoising Diffusion Probabilistic Models" (2020)](https://arxiv.org/abs/2006.11239)
+- A. Radford et al., ["Learning Transferable Visual Models From Natural Language Supervision (CLIP)" (2021)](https://arxiv.org/abs/2103.00020)
+- R. Rombach et al., ["High-Resolution Image Synthesis with Latent Diffusion Models" (2022)](https://arxiv.org/abs/2112.10752)
+- L. Ouyang et al., ["Training language models to follow instructions with human feedback (InstructGPT)" (2022)](https://arxiv.org/abs/2203.02155)
+- OpenAI, ["GPT-4 Technical Report" (2023)](https://arxiv.org/abs/2303.08774)
+- A. M. Turing, ["Computing Machinery and Intelligence", *Mind* (1950)](https://academic.oup.com/mind/article/LIX/236/433/986238)

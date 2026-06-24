@@ -1,0 +1,135 @@
+---
+order: 4
+title: "統計的機械学習の時代"
+subtitle: "知識を書くのをやめ、データに語らせる。"
+period: "1990s–2000s"
+summary: "SVMやブースティングなど統計に基づく手法が席巻。Deep Blueがチェス王者を破り、LSTMとCNNが静かに次の時代を準備する。"
+topics: ["SVM", "カーネル法", "LSTM", "Deep Blue"]
+hue: 250
+people: ["vapnik", "lecun", "schmidhuber", "hochreiter"]
+---
+
+import StMargin from "@/components/figures/StMargin.astro";
+
+前章の終わり、ニューラルネットは袋小路にいました。<Term id="backprop">誤差逆伝播法</Term>という多層学習の道具は手にしていたのに、層を深くするほど<Term id="vanishing-gradient">勾配が消えて</Term>入力側がほとんど学習されず、そもそも計算機の力もデータも足りない。理屈はあるのに動かない——そんな冷遇のなかで、AIの主役は思わぬ方向から交代します。脳を真似ることをいったん諦め、**データそのものの統計構造**に賭ける人々が舞台に上がってきたのです。
+
+## 概要：書く知能から、計算する知能へ
+
+それまでのAIは、知識を人間が<Term id="gofai">記号として書き下す</Term>営みでした。専門家のノウハウを if-then ルールに翻訳する——だがこの方式は、知識を手で書くコスト（知識獲得のボトルネック）に押し潰されつつありました。
+
+代わりに台頭したのが、**ラベル付きデータから規則性を自動で推定する**統計的機械学習です。「知能とは何か」を問わず、「与えられたデータで誤りを最小にする関数」を厳密な最適化問題として解く。哲学を脇に置き、数理最適化と統計理論に徹したこの実利主義が、1990〜2000年代の精度競争を制していきます。
+
+その象徴が、ヴァプニクらの<Term id="svm">サポートベクターマシン</Term>でした。深い理論的裏づけ、凸最適化ゆえの安定した学習、そして当時のニューラルネットを上回る精度。「ニューラルネットは原理的にはともかく、実用ではSVMに勝てない」——これが2000年代の常識になります。
+
+<PersonCard id="vapnik" />
+
+## 主要マイルストーン
+
+<Milestone year="1995" title="サポートベクターマシン（Cortes & Vapnik）">
+  <Term id="margin">マージン最大化</Term>という明快な原理と<Term id="kernel-trick">カーネルトリック</Term>を備えた分類器が登場。統計的学習理論に支えられ、以後10年以上にわたり高精度手法の代名詞となる。
+</Milestone>
+
+<Milestone year="1995–97" title="AdaBoost（Freund & Schapire）">
+  「弱い学習器を集めれば強い学習器になるか」という理論的問いに、<Term id="boosting">ブースティング</Term>が実装で答えを出す。誤った例の重みを上げて学習を重ね、足し合わせて誤差を指数的に下げた。
+</Milestone>
+
+<Milestone year="1997" title="LSTM（Hochreiter & Schmidhuber）">
+  勾配消失を回避し長期依存を学べる<Term id="lstm">リカレント構造</Term>が考案される。当時は注目されなかったが、約20年後の系列モデル隆盛の伏線となった。
+</Milestone>
+
+<Milestone year="1997" title="Deep Blue が Kasparov に勝利">
+  IBM のチェス専用機が世界王者を破る。だがその中身は深い探索と人手で調整した評価関数——*学習ではなく力業*の勝利であり、記号＋探索パラダイムの頂点にして限界の象徴だった。
+</Milestone>
+
+<Milestone year="1998" title="LeNet-5（LeCun）">
+  <Term id="convolution">畳み込み</Term>とプーリングを積んだ<Term id="cnn">CNN</Term>が、手書き数字認識で実用水準に到達。小切手の自動読み取りなどに使われ、ニューラルネットの灯を地道に守った。
+</Milestone>
+
+<Milestone year="2001" title="ランダムフォレスト（Breiman）">
+  多数の決定木をデータと特徴のランダム性で多様化し、多数決で頑健にまとめるアンサンブル。調整が容易で過学習に強く、実務の定番となった。
+</Milestone>
+
+## 技術の中身①：SVM とカーネル — 余白を最大にする
+
+SVM の発想は驚くほど幾何的です。2クラスを分ける境界（超平面）は無数に引けますが、SVM はそのうち**最も「余白」の広い**ものを選びます。決定関数を
+
+$$
+f(\mathbf{x}) = \mathbf{w}\cdot\mathbf{x} + b
+$$
+
+とし、$f(\mathbf{x})=0$ を境界面とします。各データ点 $\mathbf{x}_i$ とこの面との距離は $|\,\mathbf{w}\cdot\mathbf{x}_i + b\,| / \lVert\mathbf{w}\rVert$。境界に最も近い点（**サポートベクター**）との距離が<Term id="margin">マージン</Term>で、これを最大化することが汎化への賭けになります。
+
+スケールを $y_i(\mathbf{w}\cdot\mathbf{x}_i + b) \ge 1$ と正規化すると、マージンは $1/\lVert\mathbf{w}\rVert$ に比例します。よって「マージン最大化」は、次の凸二次計画問題に帰着します。
+
+$$
+\min_{\mathbf{w},\,b} \ \tfrac{1}{2}\lVert\mathbf{w}\rVert^2
+\quad \text{s.t.} \quad y_i(\mathbf{w}\cdot\mathbf{x}_i + b) \ge 1 \quad (\forall i)
+$$
+
+<Figure caption="SVM は2クラスを分ける無数の境界のうち、両側の最も近い点（サポートベクター）までの余白＝マージンが最大になる超平面を選ぶ。境界を決めるのはサポートベクターだけ。" label="FIG 4.1">
+  <StMargin />
+</Figure>
+
+ここが利いてきます。境界を決めるのは余白の縁に乗るサポートベクターだけで、残りの点は答えに影響しません。**少数の重要な点だけが効く**から、データが少なくても安定するのです。
+
+直線では分けられないデータには、<Term id="kernel-trick">カーネルトリック</Term>が応えます。データを高次元の特徴空間へ写像 $\phi(\mathbf{x})$ で持ち上げれば、低次元で曲がっていた境界も高次元では平らな超平面で切れる。問題は、その高次元ベクトルを陽に作ると計算が爆発すること。ところが SVM の最適化は、データが必ず**内積の形**でしか現れません。そこで内積だけをまとめて与える関数
+
+$$
+K(\mathbf{x},\mathbf{x}') = \phi(\mathbf{x})\cdot\phi(\mathbf{x}')
+$$
+
+を用意すれば、$\phi$ を一度も計算せずに高次元での分離ができてしまう。たとえばガウスカーネル $K(\mathbf{x},\mathbf{x}') = \exp\!\big(-\gamma\lVert\mathbf{x}-\mathbf{x}'\rVert^2\big)$ は、実質的に*無限次元*の特徴空間に対応します。
+
+> なぜ2000年代、SVM はニューラルネットより好まれたのか。
+> 第一に**少データに強い**——マージンという明確な汎化原理を持つ。
+> 第二に**理論保証**——ヴァプニクの統計的学習理論（VC 理論）が汎化の上界を与える。
+> 第三に**凸最適化**——大域最適に必ず収束し、初期値や乱数に振り回されない。
+> ニューラルネットの非凸な最適化と職人芸に比べ、これは圧倒的に「扱いやすい工学」でした。
+
+## 技術の中身②：勾配消失と LSTM — 静かな伏線
+
+統計的手法が表舞台を占めるなか、神経回路の系譜は地下水脈として生き延びていました。その鍵を握る問題が、系列を扱う<Term id="rnn">リカレントニューラルネット（RNN）</Term>にありました。
+
+RNN は時刻ごとに隠れ状態 $\mathbf{h}_t$ を更新します。
+
+$$
+\mathbf{h}_t = \tanh\!\big(W_h \mathbf{h}_{t-1} + W_x \mathbf{x}_t + \mathbf{b}\big)
+$$
+
+理屈の上では $\mathbf{h}_t$ が過去すべての文脈を運ぶはずです。ところが時間方向に展開して誤差逆伝播すると、$T$ ステップ前への勾配には $\prod_{t} \partial\mathbf{h}_t/\partial\mathbf{h}_{t-1}$ という**ヤコビアンの積**が現れます。各因子の大きさがおおむね $1$ 未満なら勾配は $T$ について指数的に $0$ へ潰れ（<Term id="vanishing-gradient">勾配消失</Term>）、$1$ 超なら逆に発散します。結果として RNN は、数十ステップ離れた**長期依存**をまともに学べませんでした。これを定式化したのが、当時シュミットフーバーのもとで学んでいたホッフライターです。
+
+<PersonCard id="schmidhuber" />
+
+彼らの答えが <Term id="lstm">LSTM（Long Short-Term Memory）</Term>です。発想は、勾配が素通りできる「高速道路」をネットの中に通すこと。隠れ状態とは別に**セル状態** $\mathbf{c}_t$ を持ち、その更新を掛け算ではなく*加算*中心にします。
+
+$$
+\mathbf{c}_t = \mathbf{f}_t \odot \mathbf{c}_{t-1} + \mathbf{i}_t \odot \tilde{\mathbf{c}}_t
+$$
+
+ここで三つのゲート——**忘却ゲート** $\mathbf{f}_t$（古い記憶をどれだけ残すか）、**入力ゲート** $\mathbf{i}_t$（新情報をどれだけ書き込むか）、**出力ゲート** $\mathbf{o}_t$（セルから何を出すか）——が、それぞれ $0$〜$1$ の弁として情報の流れを調節します。忘却ゲートが $1$ に近ければ $\mathbf{c}_{t-1}$ がほぼそのまま次へ渡り、勾配も減衰せず遠くまで届く。これが「短期記憶を長く保つ（Long Short-Term Memory）」という名の由来です。
+
+同じころ、ルカンの LeNet-5 が<Term id="cnn">畳み込み</Term>という別ルートで生き延びていました。フィルタを画像上で滑らせ、同じ重みを使い回す（重み共有）ことで、少ないパラメータで位置ずれに強い特徴を捉える——全結合より圧倒的に効率的なこの構造は、後の画像認識革命の本体そのものです。
+
+<PersonCard id="lecun" />
+
+LSTM も LeNet も、当時は統計的手法の影で脇役でした。だが両者は、次の革命で主役になるための**設計図**を黙って描き終えていたのです。
+
+## なぜこの時代が重要か → 次の時代へ
+
+この10年余りが残したものは、二重の意味で大きい。
+
+ひとつは方法論の転換。「知識を書く」記号主義から「データに語らせる」統計的学習へと、AIの重心が決定的に移りました。汎化を理論で語り、最適化問題として厳密に解く——この規律こそ、後のディープラーニングが受け継ぐ作法です。
+
+もうひとつは、冷遇の中で温存された伏線。<Term id="lstm">LSTM</Term> は長い系列を学ぶ道を、<Term id="cnn">CNN</Term> は画像から特徴を吸い上げる道を、それぞれ静かに用意していました。足りなかったのは手法ではなく、**大規模なデータ**と、それを回す**計算資源（GPU）**だったのです。
+
+次章、この三つ——眠っていたニューラルネットの設計、ウェブが生んだ膨大なデータ、そして並列計算の物理的な力——がついに噛み合います。冷遇されていた神経回路の系譜が、誰も予想しなかった速さで主役へと返り咲く。ディープラーニング革命の幕が上がります。
+
+---
+
+### 原典・参考
+
+- C. Cortes & V. Vapnik, "Support-Vector Networks", *Machine Learning* (1995)
+- Y. Freund & R. Schapire, "A Decision-Theoretic Generalization of On-Line Learning and an Application to Boosting" (1997)
+- S. Hochreiter & J. Schmidhuber, "Long Short-Term Memory", *Neural Computation* (1997)
+- Y. LeCun, L. Bottou, Y. Bengio & P. Haffner, "Gradient-Based Learning Applied to Document Recognition", *Proc. IEEE* (1998)
+- L. Breiman, "Random Forests", *Machine Learning* (2001)

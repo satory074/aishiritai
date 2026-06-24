@@ -1,0 +1,166 @@
+---
+import { getCollection } from "astro:content";
+import Layout from "@/components/Layout.astro";
+import EraCard from "@/components/EraCard.astro";
+import { siteLink } from "@/lib/url";
+
+const eras = (await getCollection("eras")).sort(
+  (a, b) => a.data.order - b.data.order
+);
+---
+
+<Layout showHeader={true}>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <p class="kicker hero__kicker">AI HISTORY · 1936 → NOW</p>
+      <h1 class="hero__title">
+        <span class="hero__line">考える機械から</span>
+        <span class="hero__line hero__line--accent">生成AIまで。</span>
+      </h1>
+      <p class="hero__lead">
+        チューリングが「機械は考えられるか」と問うてから、AlphaGo が世界最強の棋士を破り、
+        そして生成AIが言葉も絵も生み出す現在まで。<br />
+        AIの歩みを、ブームと「冬」を繰り返した<strong>因果の物語</strong>として、
+        そして<strong>技術の中身</strong>——パーセプトロン・誤差逆伝播・自己注意・拡散——まで
+        踏み込んで時代順にたどります。
+      </p>
+      <div class="hero__meta mono">
+        <span><b>8</b> の時代</span>
+        <span class="hero__dot">/</span>
+        <span><b>2度</b> のAIの冬</span>
+        <span class="hero__dot">/</span>
+        <span>チューリング → Transformer</span>
+      </div>
+      <a class="hero__cta mono" href={eras[0] ? siteLink(`/eras/${eras[0].id}`) : "#eras"}>
+        第1章から読む ↓
+      </a>
+    </div>
+  </section>
+
+  <!-- 時代カード一覧 -->
+  <section id="eras" class="eras">
+    <div class="wrap">
+      <h2 class="eras__head mono"># 8つの時代をたどる</h2>
+      <ol class="eras__grid">
+        {
+          eras.map((era) => (
+            <li>
+              <EraCard
+                id={era.id}
+                order={era.data.order}
+                title={era.data.title}
+                period={era.data.period}
+                summary={era.data.summary}
+                topics={era.data.topics}
+                hue={era.data.hue}
+              />
+            </li>
+          ))
+        }
+      </ol>
+      <p class="eras__foot">
+        用語が気になったら <a href={siteLink("/glossary")}>用語集</a>、
+        登場する研究者は <a href={siteLink("/people")}>人物一覧</a> にまとめています。
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    padding-block: 4.5rem 3rem;
+    position: relative;
+  }
+  .hero__kicker {
+    margin-bottom: 1rem;
+  }
+  .hero__title {
+    font-family: var(--font-mono);
+    font-size: clamp(2.3rem, 7vw, 4rem);
+    line-height: 1.12;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .hero__line {
+    display: block;
+    color: #fff;
+  }
+  .hero__line--accent {
+    color: hsl(var(--era-hue) 90% 70%);
+    text-shadow: 0 0 30px hsl(var(--era-hue) 90% 55% / 0.45);
+  }
+  .hero__lead {
+    max-width: 46rem;
+    margin: 1.6rem 0 0;
+    font-size: 1.04rem;
+    line-height: 1.95;
+    color: var(--text-muted);
+  }
+  .hero__lead strong {
+    color: var(--text);
+  }
+  .hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.8rem;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+  }
+  .hero__meta b {
+    color: hsl(var(--era-hue) 85% 70%);
+  }
+  .hero__dot {
+    color: var(--text-dim);
+  }
+  .hero__cta {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.7rem 1.3rem;
+    font-size: 0.9rem;
+    color: var(--bg);
+    background: hsl(var(--era-hue) 88% 66%);
+    border-radius: 999px;
+    font-weight: 700;
+    box-shadow: 0 0 24px hsl(var(--era-hue) 90% 55% / 0.4);
+    transition:
+      transform 0.16s ease,
+      box-shadow 0.16s ease;
+  }
+  .hero__cta:hover {
+    color: var(--bg);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px hsl(var(--era-hue) 90% 55% / 0.6);
+  }
+
+  .eras {
+    padding-block: 1.5rem;
+  }
+  .eras__head {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.7rem;
+    margin-bottom: 1.6rem;
+  }
+  .eras__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 640px) {
+    .eras__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .eras__foot {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+</style>
