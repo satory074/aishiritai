@@ -27,6 +27,8 @@ Deploy: pushing to `main` triggers `.github/workflows/deploy.yml` (build with `G
 **MDX component injection (non-obvious).**
 Inside era MDX, `<Term>`, `<PersonCard>`, `<Milestone>`, and `<Figure>` are used **without imports** — they are injected by `eras/[id].astro` via `<Content components={{ Term, PersonCard, Milestone, Figure }} />`. Per-chapter SVG figure components (`src/components/figures/*.astro`) ARE imported at the top of each MDX file and passed into `<Figure>`. If you add a new MDX-level shared component, you must register it in that `components` object or MDX won't resolve it.
 
+Figure components are self-contained: an inline `<svg viewBox="…">` plus a scoped `<style>` that colors strokes/fills with `hsl(var(--era-hue) … )` so each diagram auto-matches its era's accent (don't hard-code colors). `FormalNeuron.astro` is the reference to copy. Give each a unique name (often chapter-prefixed, e.g. `Tf…`/`Dl…`) to avoid collisions, and wrap usage in `<Figure caption="…" label="FIG n.m">`.
+
 **Data layer keyed by id.**
 `src/data/glossary.json` and `src/data/people.json` are objects keyed by id. `src/lib/glossary.ts` / `src/lib/people.ts` load them and expose `getTerm`/`getPerson`/`allTerms`/`allPeople`. `<Term id="...">label</Term>` and `<PersonCard id="..." />` reference those keys. **Gotcha: a bad id does NOT fail the build** — `Term` renders just the label, `PersonCard` renders nothing, with only a `console.warn` in dev. Keep ids in MDX in sync with the JSON. The `/glossary` and `/people` pages render the full JSON.
 
