@@ -11,6 +11,8 @@ people: ["radford", "sutskever"]
 
 import GaDiffusion from "@/components/figures/GaDiffusion.astro";
 import DiffusionDemo from "@/components/demos/DiffusionDemo.astro";
+import GaSoftmaxTemp from "@/components/demos/GaSoftmaxTemp.astro";
+import GaRlhf from "@/components/demos/GaRlhf.astro";
 
 前章で<Term id="transformer">Transformer</Term>という器が完成し、それを巨大化すれば賢くなるという<Term id="scaling-law">スケーリング則</Term>が見えました。
 ここから先は、長く積み上げてきた技術が*生成*という一点で結実する物語です。
@@ -119,6 +121,11 @@ $$
 
 第二項がなければ、モデルは報酬モデルの隙を突く奇妙な出力（報酬ハッキング）へ暴走します。
 KL の綱で「元の言語能力を保ったまま、人の好みに寄せる」——この匙加減こそが、ChatGPTのあの自然な手触りを生みました。
+
+その手綱 $\beta$ を動かして、報酬最大化と「元モデルからの距離（KL）」の綱引きを体感してみましょう。
+緩めれば良い応答に集中しますが、元モデルから大きく逸脱していきます。
+
+<GaRlhf />
 InstructGPT が示した教訓は鮮烈でした。*規模より整列（alignment）*。
 1.3B のモデルが、100倍以上大きい素の GPT-3 より好まれたのです。
 
@@ -133,6 +140,11 @@ RLHF を含むGPT系列を初期から率い、OpenAIの方向を定めた一人
 事実かどうかを照合する装置を内蔵しているわけではなく、**もっともらしさ**だけを最大化します。
 だから、存在しない論文を堂々と引用し、もっともらしい嘘を自信たっぷりに述べる。
 これはバグというより、確率的な次語予測という仕組みそのものに由来する*宿命*です。
+
+その「次の語を確率で選ぶ」ところを実際に触ってみましょう。温度を上げれば大胆に、下げれば無難に——
+創造性と暴走（ハルシネーション）が同じノブの両端にあることが分かります。
+
+<GaSoftmaxTemp />
 
 現在地は、この弱点と折り合う方向に進んでいます。
 外部の検索結果や文書を文脈に与えて答えさせる検索拡張、推論の途中を書き出させる手法、ツールを呼ばせて事実を確かめさせる設計。
@@ -169,6 +181,98 @@ RLHF を含むGPT系列を初期から率い、OpenAIの方向を定めた一人
 その先に何が描かれるかは、これを読むあなたを含めた、次の世代の手に委ねられています。
 
 ---
+
+## 原典を読み解く
+
+<Paper
+  title="Denoising Diffusion Probabilistic Models (DDPM)"
+  authors="J. Ho, A. Jain & P. Abbeel"
+  year="2020"
+  venue="NeurIPS"
+  url="https://arxiv.org/abs/2006.11239"
+  badge="拡散"
+>
+画像生成の主役を<Term id="gan">GAN</Term>から奪い取った<Term id="diffusion">拡散モデル</Term>を、実用水準へ引き上げた論文です。発想は逆説的——まず本物の画像に少しずつ<Term id="gaussian">ガウスノイズ</Term>を加えて完全な砂嵐に壊す過程（前方過程）を考え、その**各ステップを巻き戻す**ことをニューラルネットに学ばせます。生成時はランダムノイズから出発し、「いまのノイズを少しだけ除く」を何百回も繰り返して画像を立ち上げます。
+
+GANの敵対的学習は不安定で「モード崩壊」（多様性の喪失）に悩まされました。拡散モデルは各ステップが「ノイズを予測する」素直な回帰問題なので学習が安定し、生成画像の質と多様性で一気に凌駕します。第3章のホップフィールド以来の「エネルギー・確率の地形を下る」という発想の現代的結実でもあります。
+
+数式の見た目は重厚ですが、やっていることは「ノイズ除去を繰り返す」だけ。この安定性と高品質が、次の Stable Diffusion による画像生成の大衆化を準備しました。
+</Paper>
+
+<Paper
+  title="Learning Transferable Visual Models From Natural Language Supervision (CLIP)"
+  authors="A. Radford et al. (OpenAI)"
+  year="2021"
+  venue="ICML / arXiv"
+  url="https://arxiv.org/abs/2103.00020"
+  badge="マルチモーダル"
+>
+画像と言語を**同じ意味空間**で結びつけた、<Term id="multimodal">マルチモーダル</Term>AIの基礎石です。CLIPはWebからかき集めた4億組の「画像とその説明文」を使い、対になる画像とテキストのベクトルが近づき、無関係な組は遠ざかるように両者のエンコーダを同時に学習しました（対照学習）。
+
+これで「テキストで画像を検索する」「画像が何かを自然文で言い当てる」が、固定ラベルなしにできるようになります。とりわけ強力なのが**ゼロショット分類**——「犬の写真」「猫の写真」といった文を用意するだけで、訓練していないカテゴリも認識できる。視覚タスクが自然言語で指示可能になりました。
+
+このテキスト↔画像の橋渡しは、文章から絵を生む text-to-image の必須部品になります。Stable Diffusion や DALL·E が「言葉で絵を描ける」のは、CLIPが言語と視覚を同じ地図に載せたからです。
+</Paper>
+
+<Paper
+  title="High-Resolution Image Synthesis with Latent Diffusion Models"
+  authors="R. Rombach et al."
+  year="2022"
+  venue="CVPR"
+  url="https://arxiv.org/abs/2112.10752"
+  badge="潜在拡散"
+>
+拡散モデルを**誰の手元でも動く**ものにした論文で、**Stable Diffusion** の土台です。DDPMはピクセル空間で直接ノイズ除去するため計算が重く、高解像度では非現実的でした。ロンバッハらは、まず画像を小さな**潜在空間**（オートエンコーダで圧縮した表現）へ移し、その軽い空間で拡散を回してから復元する、という二段構えを提案します。
+
+計算量が桁違いに下がり、家庭用GPUでも高解像度生成が可能に。さらに<Term id="clip">CLIP</Term>のテキスト埋め込みを<Term id="attention">注意機構</Term>で注入することで、プロンプトに従った text-to-image を実現しました。
+
+Stable Diffusion がオープンに公開されたことで、画像生成は研究室から一般ユーザーへ一気に広がります。技術的洗練（潜在空間での効率化）が、社会的インパクト（生成AIの大衆化）へ直結した好例です。
+</Paper>
+
+<Paper
+  title="Training language models to follow instructions with human feedback (InstructGPT)"
+  authors="L. Ouyang et al. (OpenAI)"
+  year="2022"
+  venue="NeurIPS / arXiv"
+  url="https://arxiv.org/abs/2203.02155"
+  badge="RLHF"
+>
+GPT-3の「次の語を上手に当てる」能力を、「**人の役に立つよう振る舞う**」能力へ仕上げた論文で、ChatGPT 直前の決定的な一手です。素の言語モデルは指示を無視したり的外れだったりしますが、その出力を人間の好みに合わせて整列させたのが<Term id="rlhf">RLHF（人間のフィードバックによる強化学習）</Term>です。
+
+手順は三段——まず人が書いた良い応答で教師ありファインチューニング、次に複数の応答に人が優劣をつけて**報酬モデル**を学習、最後にその報酬を最大化するよう強化学習で本体を磨きます。暴走を防ぐため、元のモデルから離れすぎない<Term id="kl-divergence">KLダイバージェンス</Term>のペナルティで手綱を引きます。
+
+「賢さ」と「使いやすさ」は別物だ——この洞察と手法が、巨大言語モデルを実用的な対話アシスタントへと変え、生成AIが社会へ広がる最後の鍵になりました。
+</Paper>
+
+<Paper
+  title="GPT-4 Technical Report"
+  authors="OpenAI"
+  year="2023"
+  venue="arXiv"
+  url="https://arxiv.org/abs/2303.08774"
+  badge="基盤モデル"
+>
+言語のみだったGPT系を画像入力にも対応させ、多くの専門試験で人間上位に並ぶ性能を示した<Term id="foundation-model">基盤モデル</Term>です。米国司法試験の模試で受験者の上位10%に入るなど、汎用的な推論能力の高さが注目を集めました。
+
+一方この報告書は、構成やデータ・モデル規模をほとんど公開しないという、研究文化の転換も象徴しています。「オープンな論文」から「能力と安全性の報告」へ——商業化と安全性への配慮が、技術の透明性とせめぎ合う時代に入りました。<Term id="rlhf">RLHF</Term>に加え、危険な出力を抑える広範な安全対策に紙幅が割かれています。
+
+それでも<Term id="hallucination">ハルシネーション</Term>（もっともらしい嘘）は完全には消えません。次の語の確率を選ぶという生成の仕組みそのものに根ざすこの宿命を、本報告も率直に認めています。能力の頂と限界の自覚が同居する、現在地を示す文書です。
+</Paper>
+
+<Paper
+  title="Computing Machinery and Intelligence"
+  authors="A. M. Turing"
+  year="1950"
+  venue="Mind"
+  url="https://academic.oup.com/mind/article/LIX/236/433/986238"
+  badge="原点への回帰"
+>
+第1章で出会ったチューリングの論文を、ここでもう一度。「機械は考えられるか」を<Term id="turing-test">イミテーション・ゲーム</Term>で測ろうとした1950年の問いに、70年あまりを経て生成AIは一つの答えを返しました——文字のやり取りだけなら、多くの人が相手を機械と見抜けない水準に達したのです。
+
+しかしチューリングの真に先見的な提案は、テストそのものより「大人の知能を直接書くのではなく、子どもの機械を**学習**で育てよ」という構想でした。大量データで事前学習し、人間のフィードバックで整える今日の大規模言語モデルは、まさにこの「学習する機械」の系譜にあります。
+
+テストに通ることと本当に理解することは同じか——第2章のELIZA効果が突きつけた問いは、いまなお開かれたままです。物語の出発点に置かれた一本へ立ち返ることで、これからの問いの輪郭が見えてきます。
+</Paper>
 
 ### 原典・参考
 

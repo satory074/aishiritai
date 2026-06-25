@@ -1,0 +1,183 @@
+---
+import Demo from "@/components/Demo.astro";
+// サンプリング温度のデモ。固定のロジットに温度Tとtop-kをかけ、softmaxの確率分布が
+// どう変形するかを見る。高温=平坦(創造的)、低温=尖鋭(決定的)。
+---
+
+<Demo
+  title="サンプリング温度 — 次の語をどう選ぶか"
+  caption="言語モデルは各候補語にスコア（ロジット）を出し、softmax で確率にして1語を引く。温度 T を下げると最有力に尖り（決定的・無難）、上げると平らになる（多様・大胆）。top-k は上位 k 語だけ残す。生成AIの『創造性』ノブの正体がこれ。"
+  label="DEMO 8.2"
+>
+  <div class="sm" data-softmax>
+    <div class="sm__prompt mono">「今日の天気は___」の次の語</div>
+    <svg class="sm__svg" viewBox="0 0 360 200" role="img" aria-label="次の語の確率分布">
+      <g data-bars></g>
+    </svg>
+
+    <div class="sm__ctrls">
+      <div class="d-row">
+        <span class="d-label">温度 T</span>
+        <input class="d-slider" data-s="temp" type="range" min="0.1" max="2" step="0.05" value="1" />
+        <span class="d-val" data-v="temp">1.00</span>
+      </div>
+      <div class="d-row">
+        <span class="d-label">top-k</span>
+        <input class="d-slider" data-s="topk" type="range" min="1" max="6" step="1" value="6" />
+        <span class="d-val" data-v="topk">6（無効）</span>
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-sample type="button">この分布から1語サンプリング</button>
+      </div>
+      <div class="d-panel d-readout sm__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const TOKENS = ["晴れ", "曇り", "雨", "雪", "最高", "微妙"];
+  const LOGITS = [2.4, 1.8, 1.2, 0.4, 1.0, 0.2];
+  const X0 = 66,
+    BARW = 250,
+    ROWH = 28,
+    Y0 = 14;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { temp: 1, topk: 6, sampled: -1 };
+    const layer = get<SVGGElement>("[data-bars]");
+
+    if (layer) {
+      TOKENS.forEach((tok, i) => {
+        const y = Y0 + i * ROWH;
+        const g = document.createElementNS(SVGNS, "g");
+        g.setAttribute("data-row", String(i));
+        g.innerHTML =
+          `<text class="sm-tok mono" x="58" y="${y + 13}">${tok}</text>` +
+          `<rect class="sm-track" x="${X0}" y="${y + 3}" width="${BARW}" height="16" rx="3"></rect>` +
+          `<rect class="sm-bar" data-bar x="${X0}" y="${y + 3}" width="0" height="16" rx="3"></rect>` +
+          `<text class="sm-p mono" data-p x="${X0 + BARW + 6}" y="${y + 14}">0%</text>`;
+        layer.appendChild(g);
+      });
+    }
+
+    function probs(): number[] {
+      // top-k マスク
+      const idx = LOGITS.map((z, i) => [z, i] as [number, number]).sort((a, b) => b[0] - a[0]);
+      const keep = new Set(idx.slice(0, state.topk).map((p) => p[1]));
+      const scaled = LOGITS.map((z, i) => (keep.has(i) ? z / state.temp : -Infinity));
+      const max = Math.max(...scaled.filter((v) => isFinite(v)));
+      const exps = scaled.map((v) => (isFinite(v) ? Math.exp(v - max) : 0));
+      const sum = exps.reduce((a, b) => a + b, 0);
+      return exps.map((e) => e / sum);
+    }
+
+    function render() {
+      const p = probs();
+      const pmax = Math.max(...p);
+      TOKENS.forEach((_, i) => {
+        const bar = get<SVGRectElement>(`[data-row="${i}"] [data-bar]`);
+        // 幅は確率に比例（最大確率がバー満杯になるよう正規化）
+        bar?.setAttribute("width", String((p[i] / pmax) * BARW));
+        bar?.classList.toggle("sm-bar--sampled", i === state.sampled);
+        const pl = get<SVGTextElement>(`[data-row="${i}"] [data-p]`);
+        if (pl) pl.textContent = `${(p[i] * 100).toFixed(0)}%`;
+      });
+
+      get<HTMLElement>('[data-v="temp"]')!.textContent = state.temp.toFixed(2);
+      get<HTMLElement>('[data-v="topk"]')!.textContent =
+        state.topk === 6 ? "6（無効）" : String(state.topk);
+
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        const mood =
+          state.temp <= 0.5
+            ? "低温：ほぼ最有力だけ。無難だが単調。"
+            : state.temp >= 1.4
+              ? "高温：分布が平ら。多様だが暴走しやすい。"
+              : "中温：それらしさと多様性のバランス。";
+        const picked =
+          state.sampled >= 0
+            ? `　→ 引かれた語: <b>${TOKENS[state.sampled]}</b>`
+            : "";
+        readout.innerHTML =
+          `pᵢ = softmax(zᵢ / T)。${mood}${picked}`;
+      }
+    }
+
+    function sample() {
+      const p = probs();
+      let r = Math.random();
+      let chosen = 0;
+      for (let i = 0; i < p.length; i++) {
+        r -= p[i];
+        if (r <= 0) {
+          chosen = i;
+          break;
+        }
+      }
+      state.sampled = chosen;
+      render();
+    }
+
+    root.querySelectorAll<HTMLInputElement>("[data-s]").forEach((sl) => {
+      sl.addEventListener("input", () => {
+        state[sl.dataset.s as "temp" | "topk"] = Number(sl.value);
+        state.sampled = -1;
+        render();
+      });
+    });
+    get<HTMLButtonElement>("[data-sample]")?.addEventListener("click", sample);
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-softmax]").forEach(setup);
+</script>
+
+<style is:global>
+  .sm {
+    display: grid;
+    gap: 0.9rem;
+  }
+  .sm__prompt {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .sm__svg {
+    width: 100%;
+    max-width: 380px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .sm-tok {
+    fill: var(--text);
+    font-size: 13px;
+    text-anchor: end;
+  }
+  .sm-track {
+    fill: var(--surface-2);
+  }
+  .sm-bar {
+    fill: hsl(var(--era-hue) 80% 56%);
+    transition: width 0.2s ease;
+  }
+  .sm-bar--sampled {
+    fill: var(--green);
+  }
+  .sm-p {
+    fill: var(--text-muted);
+    font-size: 11px;
+    text-anchor: start;
+  }
+  .sm__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .sm__readout b {
+    color: hsl(var(--era-hue) 90% 78%);
+  }
+</style>

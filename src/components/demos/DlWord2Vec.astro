@@ -1,0 +1,197 @@
+---
+import Demo from "@/components/Demo.astro";
+// word2vec のアナロジーを2次元で見せるデモ。king − man + woman ≈ queen のように、
+// 意味の差がベクトルの平行移動になり、最近傍の語が答えになる様子を可視化する。
+---
+
+<Demo
+  title="word2vec — 意味をベクトルで足し引きする"
+  caption="単語が意味のベクトルになると、意味の差が方向になる。「王→男」を表すベクトルを「女」に足すと「女王」に届く——king − man + woman ≈ queen。性別や身分の軸が、ベクトル空間の方向として立ち現れている。"
+  label="DEMO 5.3"
+>
+  <div class="wv" data-word2vec>
+    <svg class="wv__svg" viewBox="0 0 340 210" role="img" aria-label="単語ベクトル空間とアナロジー">
+      <line data-arrow="rel" class="wv-arrow wv-arrow--rel" x1="0" y1="0" x2="0" y2="0"></line>
+      <line data-arrow="app" class="wv-arrow wv-arrow--app" x1="0" y1="0" x2="0" y2="0"></line>
+      <g data-words></g>
+      <circle data-result class="wv-result" cx="0" cy="0" r="0"></circle>
+    </svg>
+
+    <div class="d-row" role="group" aria-label="アナロジー">
+      <span class="d-label">式:</span>
+      <button class="d-chip" data-an="0" type="button" aria-pressed="true">king − man + woman</button>
+      <button class="d-chip" data-an="1" type="button" aria-pressed="false">queen − woman + man</button>
+      <button class="d-chip" data-an="2" type="button" aria-pressed="false">king − prince + princess</button>
+    </div>
+    <div class="d-panel d-readout wv__readout" data-readout></div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  // x=性別軸（男0→女2）, y=身分軸（庶民0→王族2、王/女王は2, 王子/王女は1）
+  const WORDS: Record<string, [number, number, string]> = {
+    man: [0, 0, "男"],
+    woman: [2, 0, "女"],
+    prince: [0, 1, "王子"],
+    princess: [2, 1, "王女"],
+    king: [0, 2, "王"],
+    queen: [2, 2, "女王"],
+  };
+  const ANALOGIES = [
+    { a: "king", b: "man", c: "woman" },
+    { a: "queen", b: "woman", c: "man" },
+    { a: "king", b: "prince", c: "princess" },
+  ];
+  const toX = (x: number) => 70 + x * 100;
+  const toY = (y: number) => 175 - y * 62;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const wlayer = get<SVGGElement>("[data-words]");
+    let sel = 0;
+
+    if (wlayer) {
+      Object.entries(WORDS).forEach(([key, [x, y, ja]]) => {
+        const g = document.createElementNS(SVGNS, "g");
+        g.setAttribute("data-word", key);
+        g.innerHTML =
+          `<circle class="wv-dot" cx="${toX(x)}" cy="${toY(y)}" r="6"></circle>` +
+          `<text class="wv-lab" x="${toX(x)}" y="${toY(y) - 11}">${ja}</text>`;
+        wlayer.appendChild(g);
+      });
+    }
+
+    function nearest(rx: number, ry: number, exclude: string[]): string {
+      let best = "",
+        bd = Infinity;
+      for (const [key, [x, y]] of Object.entries(WORDS)) {
+        if (exclude.includes(key)) continue;
+        const d = (x - rx) ** 2 + (y - ry) ** 2;
+        if (d < bd) {
+          bd = d;
+          best = key;
+        }
+      }
+      return best;
+    }
+
+    function render() {
+      const an = ANALOGIES[sel];
+      const [ax, ay] = WORDS[an.a];
+      const [bx, by] = WORDS[an.b];
+      const [cx, cy] = WORDS[an.c];
+      const rx = ax - bx + cx;
+      const ry = ay - by + cy;
+      const ans = nearest(rx, ry, [an.a, an.b, an.c]);
+
+      // 関係ベクトル b→a
+      const rel = get<SVGLineElement>('[data-arrow="rel"]');
+      rel?.setAttribute("x1", String(toX(bx)));
+      rel?.setAttribute("y1", String(toY(by)));
+      rel?.setAttribute("x2", String(toX(ax)));
+      rel?.setAttribute("y2", String(toY(ay)));
+      // 同じベクトルを c に適用 c→result
+      const app = get<SVGLineElement>('[data-arrow="app"]');
+      app?.setAttribute("x1", String(toX(cx)));
+      app?.setAttribute("y1", String(toY(cy)));
+      app?.setAttribute("x2", String(toX(rx)));
+      app?.setAttribute("y2", String(toY(ry)));
+      // 結果点
+      const res = get<SVGCircleElement>("[data-result]");
+      res?.setAttribute("cx", String(toX(rx)));
+      res?.setAttribute("cy", String(toY(ry)));
+      res?.setAttribute("r", "10");
+
+      // 語のハイライト
+      root.querySelectorAll<SVGGElement>("[data-word]").forEach((g) => {
+        const k = g.dataset.word as string;
+        g.classList.toggle("wv-word--abc", k === an.a || k === an.b || k === an.c);
+        g.classList.toggle("wv-word--ans", k === ans);
+      });
+      root.querySelectorAll<HTMLButtonElement>("[data-an]").forEach((b) => {
+        b.setAttribute("aria-pressed", String(Number(b.dataset.an) === sel));
+      });
+
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        readout.innerHTML =
+          `${WORDS[an.a][2]} − ${WORDS[an.b][2]} + ${WORDS[an.c][2]} のベクトルが指す先の最近傍は ` +
+          `<b>${WORDS[ans][2]}</b>。意味の差（性別・身分）が方向として足し引きできる。`;
+      }
+    }
+
+    root.querySelectorAll<HTMLButtonElement>("[data-an]").forEach((b) => {
+      b.addEventListener("click", () => {
+        sel = Number(b.dataset.an);
+        render();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-word2vec]").forEach(setup);
+</script>
+
+<style is:global>
+  .wv {
+    display: grid;
+    gap: 0.9rem;
+  }
+  .wv__svg {
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+    background: hsl(var(--era-hue) 40% 50% / 0.04);
+    border-radius: var(--radius-sm);
+  }
+  .wv-dot {
+    fill: var(--text-dim);
+    transition: all 0.2s ease;
+  }
+  .wv-lab {
+    fill: var(--text-muted);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .wv-word--abc .wv-dot {
+    fill: hsl(var(--era-hue) 85% 64%);
+  }
+  .wv-word--abc .wv-lab {
+    fill: #fff;
+  }
+  .wv-word--ans .wv-dot {
+    fill: var(--green);
+  }
+  .wv-word--ans .wv-lab {
+    fill: var(--green);
+    font-weight: 700;
+  }
+  .wv-arrow {
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+  .wv-arrow--rel {
+    stroke: var(--amber);
+    stroke-dasharray: 5 3;
+  }
+  .wv-arrow--app {
+    stroke: hsl(var(--era-hue) 88% 64%);
+  }
+  .wv-result {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 2;
+    stroke-dasharray: 3 3;
+  }
+  .wv__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .wv__readout b {
+    color: var(--green);
+  }
+</style>

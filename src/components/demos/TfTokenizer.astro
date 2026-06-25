@@ -1,0 +1,182 @@
+---
+import Demo from "@/components/Demo.astro";
+// サブワード・トークナイザのデモ。LLM が見るのは「単語」ではなく「トークン」。
+// 入力文を色付きチップに分解し、文字数・単語数・トークン数の違いを見せる。
+---
+
+<Demo
+  title="トークナイザ — モデルは語ではなく『トークン』を見る"
+  caption="大規模言語モデルは文章をそのまま読まない。まずサブワード単位（トークン）に刻む。長い英単語は分割され、日本語はほぼ1文字ずつ。だから『文字数』とも『単語数』とも違う『トークン数』で課金や文脈長が決まる。"
+  label="DEMO 7.3"
+>
+  <div class="tk" data-tokenizer>
+    <div class="tk__inrow">
+      <input
+        class="tk__input"
+        data-input
+        type="text"
+        value="Transformers tokenize 自然言語 into subwords."
+        aria-label="トークン化する文"
+      />
+    </div>
+    <div class="d-row" role="group" aria-label="例文">
+      <span class="d-label">例:</span>
+      <button class="d-chip" data-ex type="button">unbelievable internationalization</button>
+      <button class="d-chip" data-ex type="button">大規模言語モデルは賢い</button>
+    </div>
+
+    <div class="tk__chips" data-chips></div>
+    <div class="d-panel d-readout tk__readout" data-readout></div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SUFFIXES = ["ization", "ableness", "tion", "ing", "ness", "ment", "able", "ize", "ed", "ly", "er", "s"];
+
+  function isJa(ch: string): boolean {
+    return /[぀-ヿ㐀-鿿ー]/.test(ch);
+  }
+
+  function splitLatin(w: string): string[] {
+    for (const suf of SUFFIXES) {
+      if (w.length > suf.length + 1 && w.toLowerCase().endsWith(suf)) {
+        return [...splitLatin(w.slice(0, w.length - suf.length)), suf];
+      }
+    }
+    if (w.length <= 5) return [w];
+    const out: string[] = [];
+    let rest = w;
+    while (rest.length > 0) {
+      out.push(rest.slice(0, 4));
+      rest = rest.slice(4);
+    }
+    return out;
+  }
+
+  type Tok = { text: string; cont: boolean };
+
+  function tokenize(text: string): Tok[] {
+    const toks: Tok[] = [];
+    // 単語・空白・記号・日本語文字に大まかに分解
+    const units = text.match(/[A-Za-z]+|[0-9]+|\s+|[^\sA-Za-z0-9]/g) ?? [];
+    for (const u of units) {
+      if (/^\s+$/.test(u)) continue;
+      if (/^[A-Za-z]+$/.test(u)) {
+        splitLatin(u).forEach((p, i) => toks.push({ text: p, cont: i > 0 }));
+      } else if (isJa(u)) {
+        toks.push({ text: u, cont: false });
+      } else {
+        toks.push({ text: u, cont: false });
+      }
+    }
+    return toks;
+  }
+
+  function hashId(s: string): number {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 50000;
+  }
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const input = get<HTMLInputElement>("[data-input]");
+    const chips = get<HTMLElement>("[data-chips]");
+
+    function render() {
+      const text = input?.value ?? "";
+      const toks = tokenize(text);
+      if (chips) {
+        chips.textContent = "";
+        toks.forEach((t) => {
+          const span = document.createElement("span");
+          span.className = "tk-chip" + (t.cont ? " tk-chip--cont" : "");
+          const L = 38 + (hashId(t.text) % 5) * 7;
+          span.style.background = `hsl(var(--era-hue) 65% ${L}%)`;
+          span.innerHTML = `<span class="tk-txt"></span><span class="tk-id mono">${hashId(t.text)}</span>`;
+          (span.querySelector(".tk-txt") as HTMLElement).textContent = (t.cont ? "##" : "") + t.text;
+          chips.appendChild(span);
+        });
+      }
+      const chars = [...text.replace(/\s/g, "")].length;
+      const words = (text.trim().match(/\S+/g) ?? []).length;
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        readout.innerHTML =
+          `文字数 ${chars} ／ 単語数 ${words} ／ <b>トークン数 ${toks.length}</b><br>` +
+          `英単語は語幹＋接尾辞などに割れ（##＝語の続き）、日本語はほぼ1文字＝1トークン。`;
+      }
+    }
+
+    input?.addEventListener("input", render);
+    root.querySelectorAll<HTMLButtonElement>("[data-ex]").forEach((b) => {
+      b.addEventListener("click", () => {
+        if (input) input.value = b.textContent ?? "";
+        render();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-tokenizer]").forEach(setup);
+</script>
+
+<style is:global>
+  .tk {
+    display: grid;
+    gap: 0.85rem;
+  }
+  .tk__input {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .tk__input:focus {
+    outline: none;
+    border-color: hsl(var(--era-hue) 85% 60%);
+  }
+  .tk__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-height: 2.4rem;
+    padding: 0.6rem;
+    background: hsl(var(--era-hue) 40% 50% / 0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .tk-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.2rem 0.45rem;
+    border-radius: 5px;
+    color: #fff;
+    line-height: 1.25;
+  }
+  .tk-chip--cont {
+    opacity: 0.82;
+  }
+  .tk-txt {
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+  .tk-id {
+    font-size: 0.58rem;
+    opacity: 0.8;
+  }
+  .tk__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .tk__readout b {
+    color: hsl(var(--era-hue) 90% 78%);
+  }
+</style>

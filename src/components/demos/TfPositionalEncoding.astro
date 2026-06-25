@@ -1,0 +1,176 @@
+---
+import Demo from "@/components/Demo.astro";
+// 位置エンコーディングのデモ。自己注意は順序を持たないので、各位置に固有の
+// 正弦波パターン PE(pos, i) を足して「何番目か」を注入する。その指紋を可視化する。
+---
+
+<Demo
+  title="位置エンコーディング — 順序という指紋"
+  caption="自己注意は語の順序を区別しない（並べ替えても同じ）。そこで各位置に sin/cos の縞模様を足して『何番目か』を教える。位置ごとに模様が固有で、低い次元ほど速く、高い次元ほどゆっくり振動する。位置を動かすと指紋（下の帯）が変わるのが分かる。"
+  label="DEMO 7.2"
+>
+  <div class="pe" data-posenc>
+    <svg class="pe__svg" viewBox="0 0 340 290" role="img" aria-label="位置×次元の正弦波ヒートマップ">
+      <text class="pe-cap" x="160" y="16">次元 i →（左ほど高周波）</text>
+      <text class="pe-cap pe-cap--rot" x="14" y="130">位置 pos ↓</text>
+      <g data-grid></g>
+      <rect data-rowhl class="pe-hl" x="0" y="0" width="0" height="0"></rect>
+      <rect data-colhl class="pe-hl pe-hl--col" x="0" y="0" width="0" height="0"></rect>
+      <!-- fingerprint strip -->
+      <text class="pe-cap" x="160" y="258">選んだ位置の符号ベクトル（指紋）</text>
+      <g data-fp></g>
+    </svg>
+
+    <div class="pe__ctrls">
+      <div class="d-row">
+        <span class="d-label">位置 pos</span>
+        <input class="d-slider" data-s="pos" type="range" min="0" max="11" step="1" value="3" />
+        <span class="d-val" data-v="pos">3</span>
+      </div>
+      <div class="d-row">
+        <span class="d-label">次元 i</span>
+        <input class="d-slider" data-s="dim" type="range" min="0" max="15" step="1" value="0" />
+        <span class="d-val" data-v="dim">0</span>
+      </div>
+      <div class="d-panel d-readout pe__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const DIM = 16,
+    POS = 12,
+    CELL = 17,
+    GX = 44,
+    GY = 26;
+
+  // PE(pos, k): 偶数次元は sin、奇数次元は cos。kペアで波長が決まる。
+  function pe(pos: number, k: number): number {
+    const pair = Math.floor(k / 2);
+    const freq = 1 / Math.pow(10000, (2 * pair) / DIM);
+    return k % 2 === 0 ? Math.sin(pos * freq) : Math.cos(pos * freq);
+  }
+  function fill(v: number): string {
+    const L = 32 + Math.abs(v) * 40;
+    return v >= 0 ? `hsl(var(--era-hue) 85% ${L}%)` : `hsl(38 85% ${L}%)`;
+  }
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { pos: 3, dim: 0 };
+    const grid = get<SVGGElement>("[data-grid]");
+    const fp = get<SVGGElement>("[data-fp]");
+
+    if (grid) {
+      for (let p = 0; p < POS; p++) {
+        for (let k = 0; k < DIM; k++) {
+          const r = document.createElementNS(SVGNS, "rect");
+          r.setAttribute("x", String(GX + k * CELL));
+          r.setAttribute("y", String(GY + p * CELL));
+          r.setAttribute("width", String(CELL - 1));
+          r.setAttribute("height", String(CELL - 1));
+          r.style.fill = fill(pe(p, k));
+          grid.appendChild(r);
+        }
+      }
+    }
+    if (fp) {
+      for (let k = 0; k < DIM; k++) {
+        const r = document.createElementNS(SVGNS, "rect");
+        r.setAttribute("data-fp-cell", String(k));
+        r.setAttribute("x", String(GX + k * CELL));
+        r.setAttribute("y", "264");
+        r.setAttribute("width", String(CELL - 1));
+        r.setAttribute("height", "16");
+        fp.appendChild(r);
+      }
+    }
+
+    function render() {
+      // 行ハイライト
+      const rh = get<SVGRectElement>("[data-rowhl]");
+      rh?.setAttribute("x", String(GX - 1));
+      rh?.setAttribute("y", String(GY + state.pos * CELL - 1));
+      rh?.setAttribute("width", String(DIM * CELL + 1));
+      rh?.setAttribute("height", String(CELL + 1));
+      // 列ハイライト
+      const ch = get<SVGRectElement>("[data-colhl]");
+      ch?.setAttribute("x", String(GX + state.dim * CELL - 1));
+      ch?.setAttribute("y", String(GY - 1));
+      ch?.setAttribute("width", String(CELL + 1));
+      ch?.setAttribute("height", String(POS * CELL + 1));
+      // 指紋ストリップ
+      for (let k = 0; k < DIM; k++) {
+        const c = get<SVGRectElement>(`[data-fp-cell="${k}"]`);
+        if (c) c.style.fill = fill(pe(state.pos, k));
+      }
+
+      get<HTMLElement>('[data-v="pos"]')!.textContent = String(state.pos);
+      get<HTMLElement>('[data-v="dim"]')!.textContent = String(state.dim);
+
+      const pair = Math.floor(state.dim / 2);
+      const wavelength = 2 * Math.PI * Math.pow(10000, (2 * pair) / DIM);
+      const fn = state.dim % 2 === 0 ? "sin" : "cos";
+      const val = pe(state.pos, state.dim);
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        readout.innerHTML =
+          `PE(pos=${state.pos}, i=${state.dim}) = ${fn}(pos × freq) = <b>${val.toFixed(2)}</b><br>` +
+          `この次元の波長 ≈ ${wavelength < 100 ? wavelength.toFixed(1) : Math.round(wavelength)} 位置分` +
+          `（小さい i ほど速く振動し、大きい i ほどゆっくり）。位置ごとに帯の模様が固有になる。`;
+      }
+    }
+
+    root.querySelectorAll<HTMLInputElement>("[data-s]").forEach((sl) => {
+      sl.addEventListener("input", () => {
+        state[sl.dataset.s as "pos" | "dim"] = Number(sl.value);
+        render();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-posenc]").forEach(setup);
+</script>
+
+<style is:global>
+  .pe {
+    display: grid;
+    gap: 1rem;
+  }
+  .pe__svg {
+    width: 100%;
+    max-width: 360px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .pe-cap {
+    fill: var(--text-dim);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+  .pe-cap--rot {
+    text-anchor: middle;
+    transform: rotate(-90deg);
+    transform-origin: 14px 130px;
+  }
+  .pe-hl {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2;
+    pointer-events: none;
+  }
+  .pe-hl--col {
+    stroke: var(--amber);
+  }
+  .pe__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .pe__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+  }
+</style>

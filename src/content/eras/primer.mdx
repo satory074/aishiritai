@@ -13,6 +13,7 @@ import { siteLink } from "@/lib/url";
 import PrDotProduct from "@/components/figures/PrDotProduct.astro";
 import PrSlope from "@/components/figures/PrSlope.astro";
 import GradientDescent from "@/components/demos/GradientDescent.astro";
+import PrVectorDot from "@/components/demos/PrVectorDot.astro";
 
 この本編は、AIの歴史を**技術の中身**——実際の数式やアーキテクチャ——まで踏み込んでたどります。
 ですが数式は、見慣れない記号でできた外国語のようなもの。記号さえ読めれば、中身は驚くほど素直です。
@@ -65,6 +66,12 @@ $$
 この「重み付き和」こそ、<a href={siteLink("/eras/dawn")}>第1章</a>の<Term id="formal-neuron">形式ニューロン</Term>や
 <a href={siteLink("/eras/symbolic")}>第2章</a>の<Term id="perceptron">パーセプトロン</Term>が入力をまとめる計算です。
 $\sum_i$（シグマ）は「$i$ を動かしながら全部足す」という指示記号にすぎません。
+
+内積にはもう一つの顔があります——$\mathbf{w}\cdot\mathbf{x}=|\mathbf{w}||\mathbf{x}|\cos\theta$。
+二つのベクトルの「向きの揃い具合」を測るものさしでもあるのです。実際に動かして、
+「成分の重み付き和」と「射影の影」が同じ数になることを確かめてみましょう。
+
+<PrVectorDot />
 
 ## ② 行列・転置・行列積 — まとめて変換する
 

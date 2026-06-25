@@ -1,0 +1,154 @@
+---
+import Demo from "@/components/Demo.astro";
+// 勾配消失とReLUのデモ。逆伝播では各層の活性化関数の傾きが掛け合わされる。
+// sigmoid(最大0.25)だと深さとともに勾配が指数的に消え、ReLU(=1)だと生き残る。
+---
+
+<Demo
+  title="勾配消失 — なぜ ReLU が深層を救ったか"
+  caption="逆伝播は各層の活性化の傾きを次々に掛け算する。sigmoid の傾きは最大でも 0.25——層を遡るたび 0.25 倍され、勾配は指数的に消える。ReLU は活性領域で傾き 1 なので勾配がそのまま届く。深いネットが学習できるかどうかの分かれ目がこれ。"
+  label="DEMO 5.2"
+>
+  <div class="rl" data-relu>
+    <svg class="rl__svg" viewBox="0 0 400 220" role="img" aria-label="層ごとの勾配の大きさ">
+      <line class="rl-axis" x1="36" y1="190" x2="388" y2="190"></line>
+      <text class="rl-axlab" x="212" y="212">← 入力層　　層　　出力層 →</text>
+      <text class="rl-axlab rl-axlab--y" x="10" y="105">|勾配|</text>
+      <g data-bars></g>
+    </svg>
+
+    <div class="rl__ctrls">
+      <div class="d-row" role="group" aria-label="活性化関数">
+        <span class="d-label">活性化:</span>
+        <button class="d-btn" data-act="sigmoid" type="button" aria-pressed="true">sigmoid (0.25)</button>
+        <button class="d-btn" data-act="tanh" type="button" aria-pressed="false">tanh (0.6)</button>
+        <button class="d-btn" data-act="relu" type="button" aria-pressed="false">ReLU (1.0)</button>
+      </div>
+      <div class="d-row">
+        <span class="d-label">層の深さ</span>
+        <input class="d-slider" data-depth type="range" min="2" max="14" step="1" value="9" />
+        <span class="d-val" data-dval>9</span>
+      </div>
+      <div class="d-panel d-readout rl__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const FACTOR: Record<string, number> = { sigmoid: 0.25, tanh: 0.6, relu: 1.0 };
+  const NAME: Record<string, string> = { sigmoid: "sigmoid", tanh: "tanh", relu: "ReLU" };
+  const X0 = 40,
+    XW = 344,
+    BASE = 190,
+    TOP = 24;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { act: "sigmoid", depth: 9 };
+    const layer = get<SVGGElement>("[data-bars]");
+
+    function render() {
+      const f = FACTOR[state.act];
+      const n = state.depth;
+      if (layer) layer.textContent = "";
+      const bw = Math.min(26, (XW / n) * 0.7);
+      const gap = XW / n;
+      // 出力層(右)を depth 番目、入力層(左)を1番目とする。
+      // 出力からの距離 d で勾配 = f^d。入力層(左端)が最も消えている。
+      let inputGrad = 1;
+      for (let i = 0; i < n; i++) {
+        // i=0 が入力層(左)、i=n-1 が出力層(右)。出力からの距離 = (n-1-i)
+        const dist = n - 1 - i;
+        const g = Math.pow(f, dist);
+        if (i === 0) inputGrad = g;
+        const h = Math.max(1.5, g * (BASE - TOP));
+        const cx = X0 + gap * (i + 0.5);
+        if (layer) {
+          const rect = document.createElementNS(SVGNS, "rect");
+          rect.setAttribute("x", String(cx - bw / 2));
+          rect.setAttribute("y", String(BASE - h));
+          rect.setAttribute("width", String(bw));
+          rect.setAttribute("height", String(h));
+          rect.setAttribute("rx", "2");
+          rect.setAttribute("class", "rl-bar" + (i === 0 ? " rl-bar--input" : ""));
+          layer.appendChild(rect);
+        }
+      }
+
+      get<HTMLElement>("[data-dval]")!.textContent = String(n);
+      root.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.act === state.act));
+      });
+
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        const gtxt = inputGrad < 0.001 ? inputGrad.toExponential(1) : inputGrad.toFixed(3);
+        const verdict =
+          inputGrad < 0.01
+            ? `<span class="d-fire d-fire--off">ほぼ 0 — 入力層は学習できない（勾配消失）</span>`
+            : `<span class="d-fire d-fire--on">勾配が届く — 深くても学習できる</span>`;
+        readout.innerHTML =
+          `${NAME[state.act]} の傾き ${f} を ${n - 1} 回掛ける：入力層に届く勾配 ≈ ${f}<sup>${n - 1}</sup> = <b>${gtxt}</b><br>${verdict}`;
+      }
+    }
+
+    root.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) => {
+      b.addEventListener("click", () => {
+        state.act = b.dataset.act as string;
+        render();
+      });
+    });
+    get<HTMLInputElement>("[data-depth]")?.addEventListener("input", (e) => {
+      state.depth = Number((e.target as HTMLInputElement).value);
+      render();
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-relu]").forEach(setup);
+</script>
+
+<style is:global>
+  .rl {
+    display: grid;
+    gap: 1rem;
+  }
+  .rl__svg {
+    width: 100%;
+    max-width: 420px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .rl-axis {
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .rl-axlab {
+    fill: var(--text-dim);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+  .rl-axlab--y {
+    text-anchor: start;
+  }
+  .rl-bar {
+    fill: hsl(var(--era-hue) 80% 58%);
+    transition: all 0.2s ease;
+  }
+  .rl-bar--input {
+    fill: var(--amber);
+  }
+  .rl__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .rl__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+  }
+  .rl__readout sup {
+    font-size: 0.7em;
+  }
+</style>

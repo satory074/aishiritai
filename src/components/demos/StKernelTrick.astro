@@ -1,0 +1,181 @@
+---
+import Demo from "@/components/Demo.astro";
+// カーネルトリックのデモ。1次元では直線で分けられない点を z=x² で2次元へ持ち上げると、
+// 1本の水平線（しきい値）で分離できるようになる様子を可視化する。
+---
+
+<Demo
+  title="カーネルトリック — 持ち上げて分ける"
+  caption="内側（青）と外側（橙）の点は、1本の数直線上では1つのしきい値で分けられない（外側が左右両端にある）。だが z=x² で高さ方向へ持ち上げると、内側は低く外側は高くなり、水平線1本で分離できる。SVM が非線形を扱う原理がこれ。"
+  label="DEMO 4.2"
+>
+  <div class="kt" data-kernel>
+    <svg class="kt__svg" viewBox="0 0 380 240" role="img" aria-label="1次元から2次元への持ち上げ">
+      <!-- axes -->
+      <line class="kt-axis" x1="40" y1="200" x2="350" y2="200"></line>
+      <line class="kt-axis kt-axis--y" x1="40" y1="200" x2="40" y2="30"></line>
+      <text class="kt-axlab" x="350" y="218">x</text>
+      <text class="kt-axlab" x="22" y="36">z=x²</text>
+      <!-- separator line -->
+      <line data-sep class="kt-sep" x1="40" y1="120" x2="350" y2="120"></line>
+      <text data-seplab class="kt-seplab" x="346" y="114">しきい値</text>
+      <!-- points injected by script -->
+      <g data-points></g>
+    </svg>
+
+    <div class="kt__ctrls">
+      <div class="d-row">
+        <span class="d-label">持ち上げ z=x²</span>
+        <input class="d-slider" data-s="lift" type="range" min="0" max="1" step="0.02" value="0" />
+        <span class="d-val" data-v="lift">0%</span>
+      </div>
+      <div class="d-row">
+        <span class="d-label">しきい値の高さ</span>
+        <input class="d-slider" data-s="sep" type="range" min="0" max="8" step="0.1" value="3.3" />
+        <span class="d-val" data-v="sep">3.3</span>
+      </div>
+      <div class="d-panel d-readout kt__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  // 内側=class A（青）／外側=class B（橙）
+  const INNER = [-1, -0.6, -0.2, 0.2, 0.6, 1];
+  const OUTER = [-2.7, -2.1, -1.7, 1.7, 2.1, 2.7];
+  const X0 = 40,
+    XW = 310,
+    BASE = 200,
+    ZS = 21; // z→画素
+
+  const toSX = (x: number) => X0 + ((x + 3) / 6) * XW;
+  const toSY = (z: number) => BASE - z * ZS;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { lift: 0, sep: 3.3 };
+    const layer = get<SVGGElement>("[data-points]");
+
+    type Pt = { x: number; inner: boolean; el: SVGCircleElement };
+    const pts: Pt[] = [];
+    if (layer) {
+      const make = (x: number, inner: boolean) => {
+        const c = document.createElementNS(SVGNS, "circle");
+        c.setAttribute("r", "6");
+        c.setAttribute("class", `kt-pt ${inner ? "kt-pt--in" : "kt-pt--out"}`);
+        layer.appendChild(c);
+        pts.push({ x, inner, el: c });
+      };
+      INNER.forEach((x) => make(x, true));
+      OUTER.forEach((x) => make(x, false));
+    }
+
+    function render() {
+      const zsep = state.sep;
+      get<SVGLineElement>("[data-sep]")?.setAttribute("y1", String(toSY(zsep)));
+      get<SVGLineElement>("[data-sep]")?.setAttribute("y2", String(toSY(zsep)));
+      get<SVGTextElement>("[data-seplab]")?.setAttribute("y", String(toSY(zsep) - 6));
+
+      let err = 0;
+      pts.forEach((p) => {
+        const z = state.lift * p.x * p.x;
+        p.el.setAttribute("cx", String(toSX(p.x)));
+        p.el.setAttribute("cy", String(toSY(z)));
+        // しきい値より下→内側と予測
+        const predInner = z <= zsep;
+        const wrong = predInner !== p.inner;
+        p.el.classList.toggle("kt-pt--wrong", wrong);
+        if (wrong) err++;
+      });
+
+      get<HTMLElement>('[data-v="lift"]')!.textContent = `${Math.round(state.lift * 100)}%`;
+      get<HTMLElement>('[data-v="sep"]')!.textContent = state.sep.toFixed(1);
+
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        readout.innerHTML =
+          err === 0
+            ? `誤分類: <b>0</b> &nbsp; <span class="d-fire d-fire--on">分離成功！</span> ` +
+              `持ち上げで内側(低)と外側(高)が水平線1本で分かれた。`
+            : `誤分類: <span class="d-fire d-fire--off">${err} 点</span> &nbsp; ` +
+              (state.lift < 0.5
+                ? `まだ平ら——1次元では外側が左右に分かれ、1本では切れない。持ち上げてみよう。`
+                : `しきい値の高さを調整してみよう。`);
+      }
+    }
+
+    root.querySelectorAll<HTMLInputElement>("[data-s]").forEach((sl) => {
+      sl.addEventListener("input", () => {
+        state[sl.dataset.s as "lift" | "sep"] = Number(sl.value);
+        render();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-kernel]").forEach(setup);
+</script>
+
+<style is:global>
+  .kt {
+    display: grid;
+    gap: 1rem;
+  }
+  .kt__svg {
+    width: 100%;
+    max-width: 400px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+    background: hsl(var(--era-hue) 40% 50% / 0.04);
+    border-radius: var(--radius-sm);
+  }
+  .kt-axis {
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .kt-axlab {
+    fill: var(--text-dim);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .kt-sep {
+    stroke: hsl(var(--era-hue) 85% 62%);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+    transition:
+      y1 0.15s ease,
+      y2 0.15s ease;
+  }
+  .kt-seplab {
+    fill: hsl(var(--era-hue) 85% 70%);
+    font-size: 10px;
+    text-anchor: end;
+  }
+  .kt-pt {
+    transition:
+      cx 0.25s ease,
+      cy 0.35s ease;
+    stroke: var(--bg);
+    stroke-width: 1.5;
+  }
+  .kt-pt--in {
+    fill: hsl(var(--era-hue) 90% 62%);
+  }
+  .kt-pt--out {
+    fill: var(--amber);
+  }
+  .kt-pt--wrong {
+    stroke: var(--red);
+    stroke-width: 2.5;
+  }
+  .kt__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .kt__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+  }
+</style>

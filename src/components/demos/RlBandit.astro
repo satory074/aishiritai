@@ -1,0 +1,198 @@
+---
+import Demo from "@/components/Demo.astro";
+// 多腕バンディット（ε-greedy）のデモ。探索と活用のトレードオフを体感する。
+// 各腕の真の当たり確率は隠れていて、引いた結果から推定値 Q を更新していく。
+---
+
+<Demo
+  title="多腕バンディット — 探索と活用"
+  caption="どの台が当たりやすいかは分からない。ε の確率でランダムに試し（探索）、残りは今いちばん良さそうな台を引く（活用）。ε=0 は探索ゼロで早合点し、ε=1 は学んだことを使わない。良い加減を探すのが強化学習の出発点。"
+  label="DEMO 6.2"
+>
+  <div class="bd" data-bandit>
+    <svg class="bd__svg" viewBox="0 0 360 210" role="img" aria-label="4つの腕の推定値と真の値">
+      <line class="bd-axis" x1="30" y1="170" x2="345" y2="170"></line>
+      <g data-arms></g>
+    </svg>
+
+    <div class="bd__ctrls">
+      <div class="d-row">
+        <span class="d-label">ε（探索率）</span>
+        <input class="d-slider" data-eps type="range" min="0" max="1" step="0.05" value="0.1" />
+        <span class="d-val" data-epsval>0.10</span>
+      </div>
+      <div class="d-row">
+        <button class="d-btn d-btn--primary" data-pull type="button">1回引く</button>
+        <button class="d-btn" data-pull100 type="button">100回 自動</button>
+        <button class="d-btn" data-reset type="button">リセット</button>
+      </div>
+      <div class="d-panel d-readout bd__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const TRUE = [0.3, 0.55, 0.7, 0.45];
+  const COLW = 78;
+  const X0 = 36;
+  const BASE = 170;
+  const TOP = 24;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const arms = TRUE.map((m) => ({ mean: m, n: 0, sum: 0 }));
+    const state = { eps: 0.1, pulls: 0, reward: 0, last: -1 };
+    const layer = get<SVGGElement>("[data-arms]");
+
+    // 列を構築
+    if (layer) {
+      TRUE.forEach((_, i) => {
+        const cx = X0 + COLW * i + COLW / 2;
+        const g = document.createElementNS(SVGNS, "g");
+        g.setAttribute("data-arm", String(i));
+        g.innerHTML =
+          `<rect class="bd-bar" data-bar x="${cx - 22}" y="${BASE}" width="44" height="0" rx="3"></rect>` +
+          `<line class="bd-true" data-true x1="${cx - 28}" y1="${BASE}" x2="${cx + 28}" y2="${BASE}"></line>` +
+          `<text class="bd-arm" x="${cx}" y="190">台${i + 1}</text>` +
+          `<text class="bd-n mono" data-n x="${cx}" y="203">0回</text>` +
+          `<text class="bd-q mono" data-q x="${cx}" y="${BASE - 6}"></text>`;
+        layer.appendChild(g);
+      });
+    }
+
+    const Q = (i: number) => (arms[i].n > 0 ? arms[i].sum / arms[i].n : 0);
+
+    function greedyArm(): number {
+      let best = 0;
+      for (let i = 1; i < arms.length; i++) if (Q(i) > Q(best)) best = i;
+      return best;
+    }
+
+    function pullOnce() {
+      const explore = Math.random() < state.eps;
+      const i = explore ? Math.floor(Math.random() * arms.length) : greedyArm();
+      const r = Math.random() < arms[i].mean ? 1 : 0;
+      arms[i].n++;
+      arms[i].sum += r;
+      state.pulls++;
+      state.reward += r;
+      state.last = i;
+    }
+
+    function render() {
+      const g = greedyArm();
+      arms.forEach((a, i) => {
+        const q = Q(i);
+        const h = q * (BASE - TOP);
+        const bar = get<SVGRectElement>(`[data-arm="${i}"] [data-bar]`);
+        bar?.setAttribute("y", String(BASE - h));
+        bar?.setAttribute("height", String(h));
+        bar?.classList.toggle("bd-bar--best", i === g && state.pulls > 0);
+        bar?.classList.toggle("bd-bar--last", i === state.last);
+        const tl = get<SVGLineElement>(`[data-arm="${i}"] [data-true]`);
+        tl?.setAttribute("y1", String(BASE - a.mean * (BASE - TOP)));
+        tl?.setAttribute("y2", String(BASE - a.mean * (BASE - TOP)));
+        const nl = get<SVGTextElement>(`[data-arm="${i}"] [data-n]`);
+        if (nl) nl.textContent = `${a.n}回`;
+        const ql = get<SVGTextElement>(`[data-arm="${i}"] [data-q]`);
+        if (ql) ql.textContent = a.n > 0 ? q.toFixed(2) : "";
+      });
+
+      get<HTMLElement>("[data-epsval]")!.textContent = state.eps.toFixed(2);
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        const avg = state.pulls > 0 ? (state.reward / state.pulls).toFixed(3) : "—";
+        readout.innerHTML =
+          `総プレイ: <b>${state.pulls}</b> 回　累積報酬: <b>${state.reward}</b>　平均: ${avg}<br>` +
+          `細い横線が「真の当たり確率」（最良は台3=0.70）。推定 Q が真値に近づくほど、よい台を選べる。`;
+      }
+    }
+
+    get<HTMLInputElement>("[data-eps]")?.addEventListener("input", (e) => {
+      state.eps = Number((e.target as HTMLInputElement).value);
+      render();
+    });
+    get<HTMLButtonElement>("[data-pull]")?.addEventListener("click", () => {
+      pullOnce();
+      render();
+    });
+    get<HTMLButtonElement>("[data-pull100]")?.addEventListener("click", () => {
+      for (let k = 0; k < 100; k++) pullOnce();
+      render();
+    });
+    get<HTMLButtonElement>("[data-reset]")?.addEventListener("click", () => {
+      arms.forEach((a) => {
+        a.n = 0;
+        a.sum = 0;
+      });
+      state.pulls = 0;
+      state.reward = 0;
+      state.last = -1;
+      render();
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-bandit]").forEach(setup);
+</script>
+
+<style is:global>
+  .bd {
+    display: grid;
+    gap: 1rem;
+  }
+  .bd__svg {
+    width: 100%;
+    max-width: 380px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .bd-axis {
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .bd-bar {
+    fill: hsl(var(--era-hue) 70% 50%);
+    transition:
+      y 0.2s ease,
+      height 0.2s ease;
+  }
+  .bd-bar--best {
+    fill: hsl(var(--era-hue) 90% 62%);
+  }
+  .bd-bar--last {
+    stroke: #fff;
+    stroke-width: 2;
+  }
+  .bd-true {
+    stroke: var(--amber);
+    stroke-width: 2;
+    stroke-dasharray: 3 2;
+  }
+  .bd-arm {
+    fill: var(--text-muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .bd-n {
+    fill: var(--text-dim);
+    font-size: 10px;
+    text-anchor: middle;
+  }
+  .bd-q {
+    fill: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    text-anchor: middle;
+  }
+  .bd__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .bd__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+  }
+</style>

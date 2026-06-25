@@ -1,0 +1,161 @@
+---
+import Demo from "@/components/Demo.astro";
+// RLHF の KL 制約のデモ。報酬を最大化しつつ、元モデルから離れすぎない手綱（KLペナルティ β）。
+// 最適方策は p_tuned ∝ p_base · exp(r/β)。βを下げると報酬最大へ寄り、KLが増える。
+---
+
+<Demo
+  title="RLHF — 報酬と『元モデルからの距離』の綱引き"
+  caption="人の好み（報酬）で応答を整列させる。ただし報酬だけを追うと暴走（reward hacking）するので、元モデルから離れすぎないよう KL ペナルティ β で手綱を引く。最適解は p ∝ p_base·exp(r/β)。β を下げると良い応答に寄るが、元モデルから遠ざかる（KL 増）。"
+  label="DEMO 8.3"
+>
+  <div class="kl" data-rlhf>
+    <svg class="kl__svg" viewBox="0 0 360 218" role="img" aria-label="基本方策と調整後方策の分布">
+      <g data-rows></g>
+      <g class="kl-legend">
+        <rect x="118" y="200" width="12" height="8" class="kl-bar--base"></rect>
+        <text x="135" y="208" class="kl-leg">元モデル p_base</text>
+        <rect x="250" y="200" width="12" height="8" class="kl-bar--tuned"></rect>
+        <text x="267" y="208" class="kl-leg">調整後 p</text>
+      </g>
+    </svg>
+
+    <div class="kl__ctrls">
+      <div class="d-row">
+        <span class="d-label">KLペナルティ β（手綱）</span>
+        <input class="d-slider" data-beta type="range" min="0.2" max="4" step="0.1" value="1" />
+        <span class="d-val" data-betaval>1.0</span>
+      </div>
+      <div class="d-panel d-readout kl__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const RESP = ["丁寧で正確", "普通の返答", "そっけない", "話が脱線", "でたらめ"];
+  const BASE_LOGIT = [1.0, 1.3, 0.9, 0.6, 0.7];
+  const REWARD = [3, 1, 0, -1.5, -3];
+  const X0 = 92,
+    BARW = 232,
+    ROWH = 36,
+    Y0 = 12;
+
+  function softmax(zs: number[]): number[] {
+    const max = Math.max(...zs);
+    const ex = zs.map((z) => Math.exp(z - max));
+    const s = ex.reduce((a, b) => a + b, 0);
+    return ex.map((e) => e / s);
+  }
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { beta: 1 };
+    const rows = get<SVGGElement>("[data-rows]");
+    const base = softmax(BASE_LOGIT);
+
+    if (rows) {
+      RESP.forEach((r, i) => {
+        const y = Y0 + i * ROWH;
+        const g = document.createElementNS(SVGNS, "g");
+        g.setAttribute("data-row", String(i));
+        g.innerHTML =
+          `<text class="kl-resp" x="84" y="${y + 16}">${r}</text>` +
+          `<text class="kl-rew mono" x="84" y="${y + 28}">報酬 ${REWARD[i] > 0 ? "+" : ""}${REWARD[i]}</text>` +
+          `<rect class="kl-bar kl-bar--base" x="${X0}" y="${y + 2}" width="0" height="11" rx="2"></rect>` +
+          `<rect class="kl-bar kl-bar--tuned" data-tuned x="${X0}" y="${y + 15}" width="0" height="11" rx="2"></rect>`;
+        rows.appendChild(g);
+        (g.querySelector(".kl-bar--base") as SVGRectElement).setAttribute(
+          "width",
+          String(base[i] * BARW)
+        );
+      });
+    }
+
+    function render() {
+      // p_tuned ∝ p_base · exp(r/β)
+      const beta = state.beta;
+      const un = base.map((p, i) => p * Math.exp(REWARD[i] / beta));
+      const Z = un.reduce((a, b) => a + b, 0);
+      const tuned = un.map((u) => u / Z);
+
+      let kl = 0,
+        avgR = 0;
+      tuned.forEach((p, i) => {
+        if (p > 1e-9) kl += p * Math.log(p / base[i]);
+        avgR += p * REWARD[i];
+      });
+
+      tuned.forEach((p, i) => {
+        get<SVGRectElement>(`[data-row="${i}"] [data-tuned]`)?.setAttribute("width", String(p * BARW));
+      });
+      get<HTMLElement>("[data-betaval]")!.textContent = beta.toFixed(1);
+
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        const mood =
+          beta <= 0.5
+            ? `<span class="d-fire d-fire--off">手綱が緩い：報酬最大の応答へ集中。元モデルから大きく逸脱（暴走リスク）。</span>`
+            : beta >= 3
+              ? `<span class="d-fire d-fire--on">手綱が固い：ほぼ元モデルのまま。安全だが改善は小さい。</span>`
+              : `バランス：良い応答へ寄りつつ、元モデルの幅も保つ。`;
+        readout.innerHTML =
+          `平均報酬 = <b>${avgR.toFixed(2)}</b>　KL(p‖p_base) = <b>${kl.toFixed(2)}</b><br>${mood}`;
+      }
+    }
+
+    get<HTMLInputElement>("[data-beta]")?.addEventListener("input", (e) => {
+      state.beta = Number((e.target as HTMLInputElement).value);
+      render();
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-rlhf]").forEach(setup);
+</script>
+
+<style is:global>
+  .kl {
+    display: grid;
+    gap: 1rem;
+  }
+  .kl__svg {
+    width: 100%;
+    max-width: 380px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .kl-resp {
+    fill: var(--text);
+    font-size: 11px;
+    text-anchor: end;
+  }
+  .kl-rew {
+    fill: var(--text-dim);
+    font-size: 9px;
+    text-anchor: end;
+  }
+  .kl-bar {
+    transition: width 0.2s ease;
+  }
+  .kl-bar--base {
+    fill: var(--text-dim);
+    opacity: 0.5;
+  }
+  .kl-bar--tuned {
+    fill: hsl(var(--era-hue) 85% 60%);
+  }
+  .kl-leg {
+    fill: var(--text-dim);
+    font-size: 9px;
+  }
+  .kl__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .kl__readout b {
+    color: hsl(var(--era-hue) 90% 78%);
+  }
+</style>

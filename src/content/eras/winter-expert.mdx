@@ -11,6 +11,7 @@ people: ["minsky", "rumelhart", "hinton", "fukushima"]
 
 import WeBackprop from "@/components/figures/WeBackprop.astro";
 import GradientDescent from "@/components/demos/GradientDescent.astro";
+import WeBackpropChain from "@/components/demos/WeBackpropChain.astro";
 
 前章で、単層パーセプトロンは<Term id="xor-problem">XOR</Term>すら分離できないという壁に突き当たりました。
 ミンスキーとパパートの『Perceptrons』(1969) はこの限界を数学的に突きつけ、神経回路への期待は急速にしぼみます。
@@ -97,6 +98,11 @@ $\sigma'$ は<Term id="activation-function">活性化関数</Term>の微分、$\
   <WeBackprop />
 </Figure>
 
+連鎖律が「各辺の局所微分を掛けるだけ」だという感覚を、最小の計算グラフで確かめてみましょう。
+順伝播で値を流し、逆伝播で $\partial L/\partial w$ を右から組み立てます。
+
+<WeBackpropChain />
+
 このブレイクスルーを一般に広め、コネクショニズム復権の旗手となったのが次の二人です。
 
 <PersonCard id="rumelhart" />
@@ -160,6 +166,81 @@ $\delta$ の漸化式を見ると、層をさかのぼるたびに小さな $\si
 <Term id="svm">サポートベクターマシン</Term>に代表される統計的機械学習の時代へと話を進めます。
 
 ---
+
+## 原典を読み解く
+
+<Paper
+  title="Artificial Intelligence: A General Survey (The Lighthill Report)"
+  authors="J. Lighthill"
+  year="1973"
+  venue="UK Science Research Council"
+  badge="AIの冬"
+>
+英国政府の依頼で物理学者ライトヒルがAI研究を査定した報告書で、**第一次AIの冬**の引き金として知られます。彼はAIを三分類し、ロボティクスと中央理論（汎用知能）に対して「これまでの成果は誇大宣伝に見合っていない」と痛烈に批判しました。
+
+核心の指摘が **「組合せ爆発（combinatorial explosion）」**。小さなトイ問題で動いた探索手法が、現実規模になると場合の数が指数的に膨れ上がって破綻する——おもちゃの世界から実世界へスケールしない、という構造的な弱点を突いたのです。
+
+この報告を受けて英国はAI研究費を大幅に削減し、悲観ムードが各国へ波及しました。技術的反論というより*期待の調整*が招いた冬であり、「派手なデモと実用の間にある深い谷」という、AIが以後何度も繰り返す教訓の最初の事例です。
+</Paper>
+
+<Paper
+  title="Computer-Based Medical Consultations: MYCIN"
+  authors="E. H. Shortliffe"
+  year="1976"
+  venue="Elsevier"
+  badge="エキスパートシステム"
+>
+冬のさなかにAIを実用へ橋渡ししたのが<Term id="expert-system">エキスパートシステム</Term>で、その代表が血液感染症を診断する **MYCIN** です。約600本の「IF 症状 THEN 疑われる菌（確信度 0.7）」というルールを積み上げ、専門医に迫る抗生物質の処方提案を行いました。
+
+技術的な見どころは二つ。第一に**確信度（certainty factor）**で不確実な医療知識を数値的に扱ったこと。第二に推論の連鎖を遡って「なぜそう判断したか」を説明できたこと——現代の説明可能性（XAI）の先駆けです。
+
+しかしMYCINは臨床導入されませんでした。理由は性能ではなく、責任の所在や運用の壁、そして何より**知識獲得のボトルネック**——専門家の暗黙知を一つひとつルールに書き起こすコストが、分野が広がるほど現実離れしていく。この限界が、次代の「データから自動で学ぶ」統計的手法への動機になります。
+</Paper>
+
+<Paper
+  title="Neocognitron: A Self-organizing Neural Network Model for a Mechanism of Pattern Recognition"
+  authors="K. Fukushima"
+  year="1980"
+  venue="Biological Cybernetics"
+  url="https://link.springer.com/article/10.1007/BF00344251"
+  badge="CNNの祖"
+>
+冬の時代に静かに蒔かれた、現代<Term id="cnn">CNN</Term>の種です。福島邦彦は視覚野の神経科学（単純細胞・複雑細胞）に着想を得て、局所的な特徴を検出する層（S細胞）と、位置のずれを吸収する層（C細胞）を交互に積み重ねました。これは今日の<Term id="convolution">畳み込み</Term>層と<Term id="pooling">プーリング</Term>層に、ほぼそのまま対応します。
+
+おかげで、文字が多少ずれたり歪んだりしても認識できる**位置不変性**が、ネットワーク構造そのものから生まれます。アイデアは時代を20年以上先取りしていましたが、当時は重みを効率的に学習する手段がありませんでした。
+
+第5章で<Term id="backprop">誤差逆伝播</Term>と<Term id="gpu">GPU</Term>という翼を得たとき、このアーキテクチャがLeNet・AlexNetとして甦ります。冬は不毛ではなく、次の春の苗床でした。
+</Paper>
+
+<Paper
+  title="Neural networks and physical systems with emergent collective computational abilities"
+  authors="J. J. Hopfield"
+  year="1982"
+  venue="PNAS"
+  url="https://www.pnas.org/doi/10.1073/pnas.79.8.2554"
+  badge="連想記憶"
+>
+物理学者ホップフィールドが、ニューラルネットを**物理系のエネルギー最小化**として捉え直し、冬のさなかに神経回路研究へ再び光を当てた論文です。相互結合したネットワークにエネルギー関数 $E$ を定義し、状態更新が必ず $E$ を下げると示しました。落ち着く先（極小）が「記憶」に対応します。
+
+これにより、断片的な手がかりから完全なパターンを思い出す**連想記憶**が自然に説明できます。記憶を「番地に保存して読み出す」のではなく、「エネルギー地形の谷へ転がり落ちる力学」として実現したわけです。
+
+統計物理（スピングラス）とニューラルネットを結ぶこの視点は、ボルツマンマシン、そして第8章の<Term id="diffusion">拡散モデル</Term>のように「エネルギー・確率の地形を下る／登る」という発想の系譜へとつながっていきます。2024年、この業績にノーベル物理学賞が贈られました。
+</Paper>
+
+<Paper
+  title="Learning representations by back-propagating errors"
+  authors="D. Rumelhart, G. Hinton & R. Williams"
+  year="1986"
+  venue="Nature"
+  url="https://www.nature.com/articles/323533a0"
+  badge="誤差逆伝播"
+>
+ミンスキーらが突きつけた「単層では<Term id="xor-problem">XOR</Term>を解けない」という壁。その回答が本論文で広く知られるようになった<Term id="backprop">誤差逆伝播法（バックプロパゲーション）</Term>です。多層ネットの出力誤差を、<Term id="chain-rule">連鎖律</Term>を使って出力側から入力側へ「逆向きに」配分し、各層の重みの勾配を求めて<Term id="gradient-descent">勾配降下</Term>で更新します。
+
+鍵は、ステップ関数を滑らかな<Term id="sigmoid">シグモイド</Term>に替えて全体を微分可能にしたこと。$\dfrac{\partial L}{\partial w}$ が層をまたいで計算できるようになり、隠れ層が**データから有用な中間表現を自分で獲得する**——XORも、もっと複雑な非線形境界も学習できるようになりました。
+
+逆伝播そのものは複数の研究者が独立に発見していましたが、この論文が「隠れ層が意味のある表現を学ぶ」ことを明快に示し、分野を再起動させました。第5章のディープラーニング革命は、この一本のアルゴリズムが計算資源とデータに出会った帰結です。
+</Paper>
 
 ### 原典・参考
 

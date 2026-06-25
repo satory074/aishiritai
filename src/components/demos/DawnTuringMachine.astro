@@ -1,0 +1,233 @@
+---
+import Demo from "@/components/Demo.astro";
+// チューリングマシンのデモ。2進数に1を足す小さなプログラムを、テープ・ヘッド・
+// 規則表だけで実行する。「有限の規則＋テープ＝計算」を体感する。
+---
+
+<Demo
+  title="チューリングマシン — 規則だけで計算する"
+  caption="無限のテープ、1個のヘッド、そして数行の規則表。これだけで『2進数に+1』が計算できる。いまの状態と読んだ記号から、書く記号・移動・次状態が一意に決まる——これがあらゆるコンピュータの理論モデル。"
+  label="DEMO 1.2"
+>
+  <div class="tm" data-turing>
+    <div class="tm__statebar mono">
+      状態: <span class="tm__state" data-state>carry</span>
+      <span class="tm__step" data-stepn>0 ステップ</span>
+    </div>
+
+    <svg class="tm__svg" viewBox="0 0 364 96" role="img" aria-label="チューリングマシンのテープ">
+      <polygon data-head class="tm-head" points="0,8 12,8 6,20"></polygon>
+      <g data-tape></g>
+    </svg>
+
+    <div class="d-row" role="group" aria-label="初期値">
+      <span class="d-label">初期値:</span>
+      <button class="d-chip" data-init="3" type="button">3 = 011</button>
+      <button class="d-chip" data-init="5" type="button">5 = 101</button>
+      <button class="d-chip" data-init="7" type="button">7 = 111</button>
+    </div>
+    <div class="d-row">
+      <button class="d-btn" data-step type="button">▶ 1ステップ</button>
+      <button class="d-btn d-btn--primary" data-run type="button">▶▶ 自動実行</button>
+      <button class="d-btn" data-reset type="button">リセット</button>
+    </div>
+
+    <table class="tm__rules" data-rules>
+      <thead>
+        <tr><th>状態</th><th>読む</th><th>書く</th><th>移動</th><th>次状態</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const N = 7;
+  const CELL = 44;
+  const X0 = 18;
+
+  type Rule = { state: string; read: string; write: string; move: "L" | "R"; next: string };
+  // 2進インクリメント（最下位ビットから繰り上げ）
+  const RULES: Rule[] = [
+    { state: "carry", read: "1", write: "0", move: "L", next: "carry" },
+    { state: "carry", read: "0", write: "1", move: "L", next: "done" },
+    { state: "carry", read: "_", write: "1", move: "L", next: "done" },
+  ];
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const tape: string[] = new Array(N).fill("_");
+    const m = { head: N - 1, state: "carry", steps: 0 };
+    let timer = 0;
+    const tapeLayer = get<SVGGElement>("[data-tape]");
+
+    // 規則表を描画
+    const tbody = get<HTMLTableSectionElement>("[data-rules] tbody");
+    if (tbody) {
+      RULES.forEach((r, i) => {
+        const tr = document.createElement("tr");
+        tr.dataset.rule = String(i);
+        const sym = (s: string) => (s === "_" ? "□" : s);
+        tr.innerHTML = `<td>${r.state}</td><td>${sym(r.read)}</td><td>${sym(r.write)}</td><td>${r.move === "L" ? "←" : "→"}</td><td>${r.next}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // テープのセルを描画
+    if (tapeLayer) {
+      for (let i = 0; i < N; i++) {
+        const g = document.createElementNS(SVGNS, "g");
+        g.setAttribute("data-cell", String(i));
+        g.innerHTML =
+          `<rect class="tm-cell" x="${X0 + i * CELL}" y="26" width="${CELL - 4}" height="44" rx="4"></rect>` +
+          `<text class="tm-sym" data-sym x="${X0 + i * CELL + (CELL - 4) / 2}" y="50">□</text>`;
+        tapeLayer.appendChild(g);
+      }
+    }
+
+    function loadNumber(n: number) {
+      tape.fill("_");
+      const bits = n.toString(2).split("");
+      for (let i = 0; i < bits.length; i++) tape[N - bits.length + i] = bits[i];
+      m.head = N - 1;
+      m.state = "carry";
+      m.steps = 0;
+      stopRun();
+      render();
+    }
+
+    function render() {
+      for (let i = 0; i < N; i++) {
+        const sym = get<SVGTextElement>(`[data-cell="${i}"] [data-sym]`);
+        if (sym) sym.textContent = tape[i] === "_" ? "□" : tape[i];
+        get<SVGRectElement>(`[data-cell="${i}"] .tm-cell`)?.classList.toggle("tm-cell--head", i === m.head);
+      }
+      const head = get<SVGPolygonElement>("[data-head]");
+      const hx = X0 + m.head * CELL + (CELL - 4) / 2;
+      head?.setAttribute("points", `${hx - 7},8 ${hx + 7},8 ${hx},22`);
+      get<HTMLElement>("[data-state]")!.textContent = m.state;
+      get<HTMLElement>("[data-state]")!.classList.toggle("tm__state--done", m.state === "done");
+      get<HTMLElement>("[data-stepn]")!.textContent = `${m.steps} ステップ`;
+
+      // 現在発火しうる規則をハイライト
+      const cur = tape[m.head];
+      root.querySelectorAll<HTMLElement>("[data-rule]").forEach((tr, i) => {
+        const r = RULES[i];
+        tr.classList.toggle("tm__rule--on", m.state === r.state && r.read === cur);
+      });
+    }
+
+    function step(): boolean {
+      if (m.state === "done") return false;
+      const cur = tape[m.head];
+      const rule = RULES.find((r) => r.state === m.state && r.read === cur);
+      if (!rule) return false;
+      tape[m.head] = rule.write;
+      m.head = rule.move === "L" ? Math.max(0, m.head - 1) : Math.min(N - 1, m.head + 1);
+      m.state = rule.next;
+      m.steps++;
+      render();
+      return m.state !== "done";
+    }
+
+    function stopRun() {
+      if (timer) {
+        clearInterval(timer);
+        timer = 0;
+      }
+    }
+
+    get<HTMLButtonElement>("[data-step]")?.addEventListener("click", () => {
+      stopRun();
+      step();
+    });
+    get<HTMLButtonElement>("[data-run]")?.addEventListener("click", () => {
+      stopRun();
+      timer = window.setInterval(() => {
+        if (!step()) stopRun();
+      }, 600);
+    });
+    get<HTMLButtonElement>("[data-reset]")?.addEventListener("click", () => loadNumber(3));
+    root.querySelectorAll<HTMLButtonElement>("[data-init]").forEach((b) => {
+      b.addEventListener("click", () => loadNumber(Number(b.dataset.init)));
+    });
+
+    loadNumber(3);
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-turing]").forEach(setup);
+</script>
+
+<style is:global>
+  .tm {
+    display: grid;
+    gap: 0.85rem;
+  }
+  .tm__statebar {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+  }
+  .tm__state {
+    font-weight: 700;
+    color: hsl(var(--era-hue) 85% 70%);
+  }
+  .tm__state--done {
+    color: var(--green);
+  }
+  .tm__step {
+    color: var(--text-dim);
+    font-size: 0.74rem;
+  }
+  .tm__svg {
+    width: 100%;
+    max-width: 364px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .tm-head {
+    fill: hsl(var(--era-hue) 90% 64%);
+  }
+  .tm-cell {
+    fill: var(--surface);
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+  .tm-cell--head {
+    stroke: hsl(var(--era-hue) 90% 64%);
+    stroke-width: 2.5;
+    fill: hsl(var(--era-hue) 60% 50% / 0.14);
+  }
+  .tm-sym {
+    fill: var(--text);
+    font-size: 20px;
+    text-anchor: middle;
+  }
+  .tm__rules {
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    margin-inline: auto;
+  }
+  .tm__rules th,
+  .tm__rules td {
+    border: 1px solid var(--border);
+    padding: 0.22rem 0.7rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .tm__rules th {
+    color: var(--text-dim);
+    font-weight: 500;
+    background: var(--surface);
+  }
+  .tm__rule--on td {
+    background: hsl(var(--era-hue) 70% 50% / 0.2);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px hsl(var(--era-hue) 85% 60%);
+  }
+</style>

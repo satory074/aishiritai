@@ -11,6 +11,7 @@ people: ["hassabis", "silver"]
 
 import RlAlphaGo from "@/components/figures/RlAlphaGo.astro";
 import QLearningGrid from "@/components/demos/QLearningGrid.astro";
+import RlBandit from "@/components/demos/RlBandit.astro";
 
 前章のディープラーニング革命で、機械は「見て分類する」——画像が猫か犬かを当てる**認識**を人間並みにこなせるようになりました。
 しかしラベル付きの正解を真似るだけでは、*正解の存在しない*問題は解けません。
@@ -96,6 +97,11 @@ $$
 
 <QLearningGrid />
 
+試行錯誤には根本のジレンマがあります——**まだ試していない選択肢を探るか（探索）、いま最善と分かっている手を使うか（活用）**。
+DQN も学習中はこの ε-greedy 戦略で行動を選びます。一番単純な強化学習＝多腕バンディットで、その加減を体感してみましょう。
+
+<RlBandit />
+
 ## 技術の中身②：AlphaGo の仕組み
 
 <Prereq terms={["logarithm", "norm", "probability-distribution"]} />
@@ -153,6 +159,113 @@ $$
 再帰も畳み込みも捨て、<Term id="attention">アテンション</Term>だけで系列を結ぶこのアーキテクチャが、やがて生成AIの心臓部になります。
 
 ---
+
+## 原典を読み解く
+
+<Paper
+  title="Playing Atari with Deep Reinforcement Learning"
+  authors="V. Mnih et al. (DeepMind)"
+  year="2013"
+  venue="NIPS Workshop / arXiv"
+  url="https://arxiv.org/abs/1312.5602"
+  badge="DQN"
+>
+深層学習と<Term id="reinforcement-learning">強化学習</Term>を本格的に結婚させた最初の一撃です。<Term id="q-learning">Q学習</Term>は各状態・行動の価値 $Q(s,a)$ を学ぶ古典手法ですが、状態が「画面のピクセル全部」になると表で持てません。DeepMindは、この $Q$ を<Term id="cnn">CNN</Term>で近似する **<Term id="dqn">DQN</Term>** を提案しました。
+
+入力はゲーム画面の生ピクセルだけ、報酬はスコアの増減だけ。同一のネットワークが、ルールを一切教わらずに複数のAtariゲームを人間並みにプレイする様子は衝撃的でした。「タスクごとに専用設計」ではなく「同じエージェントが経験から汎用的に学ぶ」という一歩です。
+
+ただしニューラルネットでQ学習を回すと学習が不安定になりがち。その安定化策が、次の Nature 論文で完成します。
+</Paper>
+
+<Paper
+  title="Human-level control through deep reinforcement learning"
+  authors="V. Mnih et al. (DeepMind)"
+  year="2015"
+  venue="Nature"
+  url="https://www.nature.com/articles/nature14236"
+  badge="Atari"
+>
+2013年のDQNを完成形に仕上げ、49種類のAtariゲームの多くで人間のスコアを超えた、強化学習の金字塔です。不安定さを抑える二つの工夫が核心——**経験再生（experience replay）** は過去の体験をメモリに貯めてランダムに取り出し、連続した経験の強い相関を断ち切ります。**ターゲットネットワーク** は学習の「目標値」を一時的に固定し、追いかける的が動き続けて発散するのを防ぎます。
+
+これらにより、$Q(s,a)$ を<Term id="bellman">ベルマン方程式</Term>に沿って安定して更新できるようになりました。たった一つのアーキテクチャ・ハイパーパラメータで、ブロック崩しからインベーダーまで幅広く通用したことが「汎用性」の証拠です。
+
+「ピクセルとスコアから人間水準の制御を学ぶ」という結果は、深層強化学習という分野を一夜にして主流へ押し上げ、AlphaGoへの道を開きました。
+</Paper>
+
+<Paper
+  title="Mastering the game of Go with deep neural networks and tree search"
+  authors="D. Silver et al. (DeepMind)"
+  year="2016"
+  venue="Nature"
+  url="https://www.nature.com/articles/nature16961"
+  badge="囲碁"
+>
+「コンピュータが囲碁でトッププロに勝つのは10年早い」という常識を覆した **AlphaGo** の論文です。囲碁は局面数が天文学的で、総当たり探索は不可能。AlphaGoは二つのニューラルネットでこれに挑みました——次の一手の有望さを評価する<Term id="policy-network">方策ネットワーク</Term>と、局面の優劣を読む<Term id="value-network">価値ネットワーク</Term>です。
+
+この二つで探索の枝刈りと評価を賢くした**<Term id="mcts">モンテカルロ木探索（MCTS）</Term>**が中核。まず人間の棋譜で方策を学び（教師あり）、続いて自己対戦の強化学習で磨き上げました。直感（ネット）と読み（探索）の融合です。
+
+2016年、AlphaGoは世界最強級の李世乭九段を4勝1敗で破ります。第37手の「人間が打たない一手」は、AIが人間の定石を超えた瞬間として語り継がれました。
+</Paper>
+
+<Paper
+  title="Mastering the game of Go without human knowledge"
+  authors="D. Silver et al. (DeepMind)"
+  year="2017"
+  venue="Nature"
+  url="https://www.nature.com/articles/nature24270"
+  badge="自己対戦"
+>
+AlphaGoから**人間の棋譜を完全に取り除いた** AlphaGo Zero です。ルールだけを与え、白紙の状態から<Term id="self-play">自己対戦</Term>のみで学習します。自分自身を相手に打ち、その結果を教師信号にして方策と価値を更新する——この自己改善のループを回すだけ。
+
+設計も洗練され、方策と価値を一つのネットに統合し、探索（MCTS）が生んだ「より良い手」を教師にしてネットを訓練、強くなったネットが次の探索をさらに良くする、という好循環を作りました。人間の知識という足場を外したことで、かえって人間の発想に縛られない強さに到達します。
+
+わずか3日の自己対戦で、李世乭を破った旧AlphaGoを100戦100勝。「データは人間が用意するもの」という前提すら外せることを示した、自己生成データ時代の象徴的成果です。
+</Paper>
+
+<Paper
+  title="A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play"
+  authors="D. Silver et al. (DeepMind)"
+  year="2018"
+  venue="Science"
+  url="https://arxiv.org/abs/1712.01815"
+  badge="汎用"
+>
+AlphaGo Zero の手法から囲碁固有の工夫まで削ぎ落とし、**囲碁・チェス・将棋に同一アルゴリズムで通用**させた AlphaZero です。ゲームごとの専用知識をほぼ持たず、ルールと自己対戦だけで、各ゲームの既存最強プログラム（チェスの Stockfish、将棋の elmo など）を相手に圧勝しました。
+
+意義は「汎用性」。一つの学習レシピ（自己対戦＋MCTS＋統合ネット）が、性質の異なる三つのゲームで人類の蓄積を数時間で追い抜く。特定タスク向けの職人芸ではなく、汎用的な学習原理が強さの源泉になりうることを示しました。
+
+このDeepMindの自己対戦系譜は、後にタンパク質構造予測の **AlphaFold** など科学への応用へと展開し、「探索＋学習」のパラダイムの射程の広さを証明していきます。
+</Paper>
+
+<Paper
+  title="Deep Residual Learning for Image Recognition (ResNet)"
+  authors="K. He, X. Zhang, S. Ren & J. Sun"
+  year="2015"
+  venue="CVPR"
+  url="https://arxiv.org/abs/1512.03385"
+  badge="残差接続"
+>
+「層を深くするほど強い」はずなのに、ある深さを超えると逆に精度が落ちる——この劣化問題を解いて、ネットを一気に152層へ伸ばしたのが **ResNet** です。鍵は<Term id="resnet">残差接続（スキップ接続）</Term>。各ブロックに「入力をそのまま出力へ足す」近道を設け、層には差分 $F(x)$ だけを学ばせて出力を $F(x)+x$ にしました。
+
+これで何も学ぶ必要がなければ $F(x)=0$（恒等写像）にすればよく、深さが増えても性能が劣化しません。さらに足し算の経路を通って勾配が浅い層まで素直に届くため、<Term id="vanishing-gradient">勾配消失</Term>も大幅に緩和されます。「深さ」を安全に手に入れる工夫です。
+
+残差接続はその後ほぼすべての深層モデルの標準部品になり、第7章の Transformer も各層にこの足し算（残差接続）を組み込んでいます。AlphaGo系の価値・方策ネットの土台でもありました。
+</Paper>
+
+<Paper
+  title="Reinforcement Learning: An Introduction (2nd ed.)"
+  authors="R. Sutton & A. Barto"
+  year="2018"
+  venue="MIT Press"
+  url="http://incompleteideas.net/book/the-book-2nd.html"
+  badge="教科書"
+>
+強化学習の理論的支柱を体系化した、分野の定番教科書です。報酬を最大化する<Term id="reinforcement-learning">エージェント</Term>という枠組み、価値関数、<Term id="bellman">ベルマン方程式</Term>、TD学習、方策勾配——DQNやAlphaGoが立つ概念のほぼすべてが、ここで一貫した数学として整理されています。
+
+中心にあるのは「遅れて届く報酬をどう各行動へ割り当てるか（信用割当）」という問い。いま選んだ手の良し悪しが何十手も先にしか分からない囲碁のような状況で、価値の予測を少しずつ正していくTD学習の考え方が、本書の背骨です。
+
+著者の一人サットンは「経験から学ぶ汎用的な手法こそが最終的に勝つ」という “The Bitter Lesson” でも知られ、本書はその思想の理論的裏付けでもあります。深層強化学習の応用すべての足場となる一冊です。
+</Paper>
 
 ### 原典・参考
 

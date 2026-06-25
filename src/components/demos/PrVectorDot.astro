@@ -1,0 +1,234 @@
+---
+import Demo from "@/components/Demo.astro";
+// ベクトルの内積を体感するデモ。w·x = w₁x₁ + w₂x₂ = |w||x|cosθ。
+// 2本のベクトルをスライダーで動かし、内積の値と「射影の影」を可視化する。
+---
+
+<Demo
+  title="内積 w·x を動かして掴む"
+  caption="内積は『重み付き和 w₁x₁+w₂x₂』であり、同時に『|w||x|cosθ』でもある。x を w の向きへ落とした影（射影）が、内積の正体。同じ向きなら正、直交なら 0、逆向きなら負。これが全章で再登場する『重み付き和』の幾何だ。"
+  label="DEMO 0.1"
+>
+  <div class="vd" data-vdot>
+    <svg class="vd__svg" viewBox="0 0 300 300" role="img" aria-label="2次元平面上の2つのベクトルと内積">
+      <!-- grid -->
+      <g class="vd-grid">
+        <line x1="0" y1="150" x2="300" y2="150"></line>
+        <line x1="150" y1="0" x2="150" y2="300"></line>
+      </g>
+      <!-- projection shadow (O→P along w) -->
+      <line data-proj class="vd-proj" x1="150" y1="150" x2="150" y2="150"></line>
+      <!-- drop from x to P -->
+      <line data-drop class="vd-drop" x1="150" y1="150" x2="150" y2="150"></line>
+      <!-- vector w -->
+      <line data-vec="w" class="vd-vec vd-vec--w" x1="150" y1="150" x2="150" y2="150"></line>
+      <text data-lab="w" class="vd-lab vd-lab--w" x="150" y="150">w</text>
+      <!-- vector x -->
+      <line data-vec="x" class="vd-vec vd-vec--x" x1="150" y1="150" x2="150" y2="150"></line>
+      <text data-lab="x" class="vd-lab vd-lab--x" x="150" y="150">x</text>
+      <!-- foot point P -->
+      <circle data-foot class="vd-foot" cx="150" cy="150" r="3.5"></circle>
+    </svg>
+
+    <div class="vd__ctrls">
+      <div class="d-row">
+        <span class="d-label vd-key vd-key--w">w</span>
+        <span class="d-label">w₁</span>
+        <input class="d-slider" data-s="w0" type="range" min="-3" max="3" step="1" value="2" />
+        <span class="d-val" data-v="w0">+2</span>
+        <span class="d-label" style="margin-left:.5rem">w₂</span>
+        <input class="d-slider" data-s="w1" type="range" min="-3" max="3" step="1" value="1" />
+        <span class="d-val" data-v="w1">+1</span>
+      </div>
+      <div class="d-row">
+        <span class="d-label vd-key vd-key--x">x</span>
+        <span class="d-label">x₁</span>
+        <input class="d-slider" data-s="x0" type="range" min="-3" max="3" step="1" value="1" />
+        <span class="d-val" data-v="x0">+1</span>
+        <span class="d-label" style="margin-left:.5rem">x₂</span>
+        <input class="d-slider" data-s="x1" type="range" min="-3" max="3" step="1" value="2" />
+        <span class="d-val" data-v="x1">+2</span>
+      </div>
+
+      <div class="d-panel d-readout vd__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+  const S = 38; // 1単位あたりの画素
+  const CX = 150;
+  const CY = 150;
+  const toX = (a: number) => CX + a * S;
+  const toY = (b: number) => CY - b * S;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state: Record<string, number> = { w0: 2, w1: 1, x0: 1, x1: 2 };
+
+    function setLine(sel: string, x1: number, y1: number, x2: number, y2: number) {
+      const el = get<SVGLineElement>(sel);
+      if (!el) return;
+      el.setAttribute("x1", String(x1));
+      el.setAttribute("y1", String(y1));
+      el.setAttribute("x2", String(x2));
+      el.setAttribute("y2", String(y2));
+    }
+
+    function render() {
+      const w0 = state.w0,
+        w1 = state.w1,
+        x0 = state.x0,
+        x1 = state.x1;
+      const dot = w0 * x0 + w1 * x1;
+      const wlen = Math.hypot(w0, w1);
+      const xlen = Math.hypot(x0, x1);
+
+      // ベクトル本体
+      setLine('[data-vec="w"]', CX, CY, toX(w0), toY(w1));
+      setLine('[data-vec="x"]', CX, CY, toX(x0), toY(x1));
+      const wl = get<SVGTextElement>('[data-lab="w"]');
+      if (wl) {
+        wl.setAttribute("x", String(toX(w0) + Math.sign(w0 || 1) * 10));
+        wl.setAttribute("y", String(toY(w1) - 6));
+      }
+      const xl = get<SVGTextElement>('[data-lab="x"]');
+      if (xl) {
+        xl.setAttribute("x", String(toX(x0) + Math.sign(x0 || 1) * 10));
+        xl.setAttribute("y", String(toY(x1) - 6));
+      }
+
+      // 射影 P = ((w·x)/|w|²) w
+      const drop = get<SVGLineElement>("[data-drop]");
+      const proj = get<SVGLineElement>("[data-proj]");
+      const foot = get<SVGCircleElement>("[data-foot]");
+      if (wlen > 0.001) {
+        const k = dot / (wlen * wlen);
+        const px = k * w0,
+          py = k * w1;
+        setLine("[data-proj]", CX, CY, toX(px), toY(py));
+        setLine("[data-drop]", toX(x0), toY(x1), toX(px), toY(py));
+        foot?.setAttribute("cx", String(toX(px)));
+        foot?.setAttribute("cy", String(toY(py)));
+        foot?.classList.toggle("vd-foot--neg", dot < 0);
+        proj?.classList.toggle("vd-proj--neg", dot < 0);
+        drop?.style.setProperty("opacity", "1");
+        foot?.style.setProperty("opacity", "1");
+      } else {
+        setLine("[data-proj]", CX, CY, CX, CY);
+        drop?.style.setProperty("opacity", "0");
+        foot?.style.setProperty("opacity", "0");
+      }
+
+      // スライダー値
+      (["w0", "w1", "x0", "x1"] as const).forEach((k) => {
+        const v = get<HTMLElement>(`[data-v="${k}"]`);
+        if (v) v.textContent = sign(state[k]);
+      });
+
+      const cos = wlen > 0 && xlen > 0 ? dot / (wlen * xlen) : 0;
+      const rel = dot > 0 ? "同じ向き寄り" : dot < 0 ? "逆向き寄り" : "直交（cosθ=0）";
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        readout.innerHTML =
+          `w·x = (${sign(w0)})(${sign(x0)}) + (${sign(w1)})(${sign(x1)}) = <b>${dot}</b><br>` +
+          `= |w||x|cosθ = ${wlen.toFixed(2)} × ${xlen.toFixed(2)} × ${cos.toFixed(2)}` +
+          ` &nbsp;→&nbsp; <span class="${dot >= 0 ? "d-fire d-fire--on" : "d-fire d-fire--off"}">${rel}</span>`;
+      }
+    }
+
+    root.querySelectorAll<HTMLInputElement>("[data-s]").forEach((sl) => {
+      sl.addEventListener("input", () => {
+        state[sl.dataset.s as string] = Number(sl.value);
+        render();
+      });
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-vdot]").forEach(setup);
+</script>
+
+<style is:global>
+  .vd {
+    display: grid;
+    gap: 1.1rem;
+  }
+  .vd__svg {
+    width: 100%;
+    max-width: 320px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+    background: hsl(var(--era-hue) 40% 50% / 0.04);
+    border-radius: var(--radius-sm);
+  }
+  .vd-grid line {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  .vd-vec {
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+  .vd-vec--w {
+    stroke: hsl(var(--era-hue) 90% 64%);
+  }
+  .vd-vec--x {
+    stroke: var(--amber);
+  }
+  .vd-lab {
+    font-size: 14px;
+    font-weight: 700;
+    text-anchor: middle;
+  }
+  .vd-lab--w {
+    fill: hsl(var(--era-hue) 90% 72%);
+  }
+  .vd-lab--x {
+    fill: var(--amber);
+  }
+  .vd-proj {
+    stroke: hsl(var(--era-hue) 90% 60%);
+    stroke-width: 6;
+    stroke-linecap: round;
+    opacity: 0.45;
+  }
+  .vd-proj--neg {
+    stroke: var(--red);
+  }
+  .vd-drop {
+    stroke: var(--text-dim);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+  .vd-foot {
+    fill: hsl(var(--era-hue) 90% 66%);
+  }
+  .vd-foot--neg {
+    fill: var(--red);
+  }
+  .vd__readout {
+    font-size: 0.82rem;
+    line-height: 1.9;
+  }
+  .vd__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+    font-size: 1rem;
+  }
+  .vd-key {
+    font-weight: 700;
+    padding: 0 0.35rem;
+    border-radius: 4px;
+  }
+  .vd-key--w {
+    color: var(--bg);
+    background: hsl(var(--era-hue) 90% 64%);
+  }
+  .vd-key--x {
+    color: var(--bg);
+    background: var(--amber);
+  }
+</style>

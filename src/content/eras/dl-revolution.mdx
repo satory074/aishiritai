@@ -11,6 +11,8 @@ people: ["hinton", "krizhevsky", "li", "goodfellow", "sutskever"]
 
 import DlCnn from "@/components/figures/DlCnn.astro";
 import ConvolutionDemo from "@/components/demos/ConvolutionDemo.astro";
+import DlReluVsSigmoid from "@/components/demos/DlReluVsSigmoid.astro";
+import DlWord2Vec from "@/components/demos/DlWord2Vec.astro";
 
 前章の主役は、統計に裏打ちされた<Term id="svm">サポートベクターマシン</Term>や<Term id="boosting">ブースティング</Term>でした。
 ニューラルネットは、深くすると学習がうまくいかず、理論も整わない——そう冷遇された脇役にすぎませんでした。
@@ -91,6 +93,11 @@ $$
 
 と単純で、正の領域では微分が常に $1$。勾配が減衰せず深い層まで届くため、学習が安定し劇的に速くなりました。
 
+活性化の傾きが逆伝播でどう積み重なるかを、層の深さを変えながら見てみましょう。
+sigmoid の勾配が深さとともに消え、ReLU だけが生き残るのが一目で分かります。
+
+<DlReluVsSigmoid />
+
 もうひとつは<Term id="dropout">ドロップアウト</Term>。学習中にニューロンの一部を確率的に無効化し、
 特定の経路への過度な依存を防ぐ正則化です。巨大なモデルの過学習を抑え、汎化性能を底上げしました。
 
@@ -137,6 +144,11 @@ $$
 記号としては無関係だった単語が、用法の似たものほど近くに配置される——
 「意味とは、データから連続ベクトルとして学べる」というこの発見は、後の言語モデルすべての土台になりました。
 
+この「意味の足し引き」を2次元で触ってみましょう。性別や身分の差がベクトルの方向になり、
+足した先の最近傍が答えの語になります。
+
+<DlWord2Vec />
+
 ## 技術の中身③：生成への扉——GAN
 
 <Prereq terms={["expectation", "logarithm", "probability-distribution"]} />
@@ -178,6 +190,98 @@ GAN が示した鮮明な生成画像は衝撃的でした。
 次章は、認識から行動へ——深層強化学習の物語です。
 
 ---
+
+## 原典を読み解く
+
+<Paper
+  title="A Fast Learning Algorithm for Deep Belief Nets"
+  authors="G. Hinton, S. Osindero & Y.-W. Teh"
+  year="2006"
+  venue="Neural Computation"
+  url="https://www.cs.toronto.edu/~hinton/absps/fastnc.pdf"
+  badge="事前学習"
+>
+「ディープラーニング（deep learning）」という言葉を世に押し出し、冬の時代を終わらせた号砲です。当時、層を深くすると<Term id="backprop">誤差逆伝播</Term>がうまく働かず学習が進みませんでした。ヒントンらは発想を変え、まず**1層ずつ教師なしで事前学習**（制限ボルツマンマシンを積み上げる）してから、全体を微調整する、という二段構えを提案します。
+
+各層が下の層の特徴をうまく説明するように先に整えておけば、深いネット全体の最適化が現実的な出発点から始められる——「いきなり深く学ぶのは難しいが、積み上げてから仕上げるなら可能」という突破口でした。これが<Term id="dbn">ディープ・ビリーフ・ネット</Term>です。
+
+事前学習というこの具体的手法は数年で（ReLUや良い初期化に）置き換わりますが、「深いネットは原理的に学習できる」と研究者に再確信させたことが歴史的意義。停滞していた神経回路の系譜が、ここから一気に動き出します。
+</Paper>
+
+<Paper
+  title="ImageNet: A Large-Scale Hierarchical Image Database"
+  authors="J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li & L. Fei-Fei"
+  year="2009"
+  venue="CVPR"
+  url="https://www.image-net.org/"
+  badge="データセット"
+>
+アルゴリズムではなく**データ**が主役の論文です。フェイフェイ・リーらは、WordNet の概念体系に沿って約1400万枚の画像に人手でラベルを付けた巨大データセット ImageNet を構築しました。クラウドソーシング（Amazon Mechanical Turk）を駆使した、当時としては桁違いの規模です。
+
+背景には「モデルばかり洗練させても、学ぶ対象が貧しければ知能は育たない。子どもが膨大な視覚経験から学ぶように、機械にも大規模で多様な経験を与えるべきだ」という信念がありました。派生コンテスト **ILSVRC**（1000クラス分類）が、手法を同じ土俵で競わせる共通の物差しになります。
+
+この物差しがあったからこそ、2012年のAlexNetの飛躍が誰の目にも明らかになりました。「ベンチマークが分野を駆動する」——ImageNetはディープラーニング革命の舞台そのものを用意したのです。
+</Paper>
+
+<Paper
+  title="ImageNet Classification with Deep Convolutional Neural Networks"
+  authors="A. Krizhevsky, I. Sutskever & G. Hinton"
+  year="2012"
+  venue="NeurIPS"
+  url="https://proceedings.neurips.cc/paper/2012/hash/c399862d3b9d6b76c8436e924a68c45b-Abstract.html"
+  badge="画像認識"
+>
+**AlexNet** と呼ばれるこの論文は、深層学習が一気に主役へ躍り出る号砲になりました。ILSVRC 2012 で、それまで誤り率26%付近で拮抗していた既存手法を、AlexNetは一段で約16%へ引き下げます。この約10ポイントの飛躍が、研究者たちに「ニューラルネットは本当に効く」と確信させました。
+
+中身は<Term id="cnn">CNN</Term>を**深く積んだ**もので、新しさは単一の発明ではなく効く道具の組合せにあります——活性化を $\mathrm{ReLU}(z)=\max(0,z)$ にして学習を速め（<Term id="relu">ReLU</Term>）、<Term id="dropout">ドロップアウト</Term>で<Term id="overfitting">過学習</Term>を抑え、データ拡張で実質的な訓練量を増やしました。
+
+そして決定打が **<Term id="gpu">GPU</Term>**。6000万パラメータの巨大なネットを2枚のGPUで現実的な時間で訓練しきったことが、「理論はあるが回らない」状況を破ります。第3章の逆伝播（理屈）が、ここでハードウェアという翼を得た——AlexNetは「深いCNN＋ReLU＋ドロップアウト＋大量データ＋GPU」という現代レシピの初の完全な実演でした。
+</Paper>
+
+<Paper
+  title="Efficient Estimation of Word Representations in Vector Space (word2vec)"
+  authors="T. Mikolov, K. Chen, G. Corrado & J. Dean"
+  year="2013"
+  venue="arXiv"
+  url="https://arxiv.org/abs/1301.3781"
+  badge="分散表現"
+>
+「単語をどう数値で表すか」を一変させた論文です。それまでの one-hot 表現は語と語の関係を一切持ちませんでした。<Term id="word2vec">word2vec</Term>は「**ある語の意味は、その周囲に現れる語で決まる**」という分布仮説を、ニューラルネットの学習問題に落とし込みます——周辺語から中心語を当てる（あるいはその逆）タスクを大量のテキストで解かせるだけ。
+
+結果、各語が数百次元の密ベクトル（<Term id="embedding">埋め込み</Term>）になり、意味の近さがベクトルの近さに対応します。さらに驚くべきは、意味の**演算**ができること——$\mathrm{king} - \mathrm{man} + \mathrm{woman} \approx \mathrm{queen}$。性別や時制といった意味の軸が、ベクトル空間の方向として自然に立ち現れました。
+
+「記号としての単語」から「意味を宿したベクトルとしての単語」へ。この<Term id="representation-learning">表現学習</Term>の発想が、後のあらゆる言語モデルの入口（埋め込み層）になります。
+</Paper>
+
+<Paper
+  title="Sequence to Sequence Learning with Neural Networks"
+  authors="I. Sutskever, O. Vinyals & Q. Le"
+  year="2014"
+  venue="NeurIPS"
+  url="https://arxiv.org/abs/1409.3215"
+  badge="系列変換"
+>
+入力も出力も**長さの異なる系列**——たとえば英文を仏文へ——をニューラルネットだけで写すための枠組み、エンコーダ・デコーダ（Seq2Seq）を確立した論文です。<Term id="lstm">LSTM</Term>のエンコーダが入力文を一本の固定長ベクトル（意味の凝縮）に畳み込み、デコーダのLSTMがそこから訳文を一語ずつ生成します。
+
+「文の意味を一つのベクトルに圧縮し、そこから別の系列を立ち上げる」というこの設計は、機械翻訳・要約・対話・音声認識まで、系列を系列へ変換するあらゆるタスクの共通テンプレートになりました。
+
+ただし固定長ベクトルへの圧縮は長文で情報を取りこぼす弱点を抱え、その対策として **注意機構（attention）** が生まれます。第7章で注意が主役へ昇格し、エンコーダ・デコーダは Transformer として完成します——その物語の起点がここです。
+</Paper>
+
+<Paper
+  title="Generative Adversarial Networks"
+  authors="I. Goodfellow et al."
+  year="2014"
+  venue="NeurIPS"
+  url="https://arxiv.org/abs/1406.2661"
+  badge="生成"
+>
+認識（見分ける）に偏っていた深層学習を、**生成（作り出す）**へ大きく開いた論文です。<Term id="gan">GAN</Term>は二つのネットを競わせます——本物そっくりの偽データを作る生成器 $G$ と、本物か偽物かを見破る識別器 $D$。$G$ は $D$ を騙そうとし、$D$ は見破ろうとする。この $\min_G \max_D$ のいたちごっこ（敵対的学習）の果てに、$G$ は本物と見分けのつかないデータを生み出します。
+
+紙幣の偽造者と鑑定士が互いを高め合う比喩がよく使われます。明示的に確率分布を書き下さず、競争のダイナミクスだけでリアルなサンプルを生成する点が革新的でした。
+
+GANは写実的な顔画像生成などで一時代を築き、「生成モデル」という研究領域そのものを活性化させます。第8章で主役の座は<Term id="diffusion">拡散モデル</Term>へ移りますが、AIが「世界を認識する」だけでなく「世界を生成する」段階へ進む転回点が、この2014年でした。
+</Paper>
 
 ### 原典・参考
 

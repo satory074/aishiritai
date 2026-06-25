@@ -7,6 +7,7 @@ import PersonCard from "@/components/PersonCard.astro";
 import Milestone from "@/components/Milestone.astro";
 import Figure from "@/components/Figure.astro";
 import Prereq from "@/components/Prereq.astro";
+import Paper from "@/components/Paper.astro";
 import { siteLink } from "@/lib/url";
 
 export async function getStaticPaths() {
@@ -43,7 +44,7 @@ const num = String(d.order).padStart(2, "0");
 const isPrimer = d.order === 0;
 
 // MDX 本文に注入する共通コンポーネント
-const components = { Term, PersonCard, Milestone, Figure, Prereq };
+const components = { Term, PersonCard, Milestone, Figure, Prereq, Paper };
 ---
 
 <Layout title={d.title} description={d.summary} eraHue={d.hue}>

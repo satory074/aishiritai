@@ -11,6 +11,7 @@ people: ["turing", "mcculloch", "mccarthy"]
 
 import FormalNeuron from "@/components/figures/FormalNeuron.astro";
 import NeuronPlayground from "@/components/demos/NeuronPlayground.astro";
+import DawnTuringMachine from "@/components/demos/DawnTuringMachine.astro";
 
 生成AIの物語は、コンピュータがまだ部屋いっぱいの真空管だった時代に始まります。
 この章の主役は、機械ではなく**問い**です——「機械は計算できるか」、そして「機械は考えられるか」。
@@ -62,6 +63,11 @@ import NeuronPlayground from "@/components/demos/NeuronPlayground.astro";
 逆に、停止問題のように*原理的に解けない*問題があることも証明されました。
 「計算でできること／できないこと」の地図が引かれた——これがソフトウェアという概念の数学的な出発点です。
 
+「有限の規則表だけで計算が進む」とはどういうことか、2進数に1を足す小さなチューリングマシンで確かめてみましょう。
+状態と読んだ記号から、次の動作が一意に決まっていきます。
+
+<DawnTuringMachine />
+
 > われわれは先のことをほんの少ししか見通せない。だが、そこにはやるべきことが山ほどあるのが見える。
 > <span class="mono">— A. Turing (1950)</span>
 
@@ -111,6 +117,68 @@ $$
 そして*手痛い壁*にぶつかることになります。
 
 ---
+
+## 原典を読み解く
+
+<Paper
+  title="On Computable Numbers, with an Application to the Entscheidungsproblem"
+  authors="A. M. Turing"
+  year="1936"
+  venue="Proc. London Math. Soc."
+  url="https://www.cs.virginia.edu/~robins/Turing_Paper_1936.pdf"
+  badge="計算の定義"
+>
+ヒルベルトが投げかけた「数学のすべての命題を機械的手続きで判定できるか」という問い（決定問題）に、チューリングは**否**と答えました。その証明のために発明したのが、いまチューリングマシンと呼ばれる仮想機械です。無限のテープ・読み書きヘッド・「状態と読んだ記号から次の動作を決める有限の規則表」——たったこれだけで、当時知られていた「計算」のあらゆる形を表現できることを示しました。
+
+この論文の凄みは二段構えです。第一に、ある特定の機械（万能チューリングマシン）が、他のどんな機械の動作も「記述を読み込んで模倣」できること——これは*プログラム内蔵方式のコンピュータ*そのものの理論的原型です。第二に、その万能性ゆえに**原理的に解けない問題**（停止問題）が存在することを、自己言及を使った対角線論法で証明しました。
+
+つまりこの一本で、「計算とは何か」が初めて厳密に定義され、同時に「計算でできること／できないこと」の地図の縁が描かれました。ソフトウェアという概念、ひいてはAIが動く土台の数学が、ここで生まれています。
+</Paper>
+
+<Paper
+  title="A Logical Calculus of the Ideas Immanent in Nervous Activity"
+  authors="W. McCulloch & W. Pitts"
+  year="1943"
+  venue="Bull. Math. Biophysics"
+  url="https://www.cs.cmu.edu/~./epxing/Class/10715/reading/McCulloch.and.Pitts.pdf"
+  badge="形式ニューロン"
+>
+神経生理学者マカロックと論理学者ピッツが、脳の神経細胞を初めて**数式の素子**として定式化した論文です。彼らのニューロンは、入力 $x_i$ を重み $w_i$ で足し合わせ、しきい値 $b$ を超えたら $1$、さもなくば $0$ を出す——いまの言葉で言えば $y=\mathrm{step}(\sum_i w_i x_i - b)$ という、<Term id="formal-neuron">形式ニューロン</Term>そのものです。
+
+主張は大胆でした。こうした素子を結線するだけで AND・OR・NOT といった論理演算がすべて組め、したがって**ニューロンのネットワークは命題論理を計算できる**——脳を論理機械として捉える道が、ここで開かれます。チューリングが「計算」を機械に還元したのと同じ年代に、彼らは「思考」を神経回路に還元しようとしたわけです。
+
+重みを人手で決める点を除けば、この1943年のモデルは現代の人工ニューロンとほぼ同型です。残された宿題は一つ——「重みをデータから自動で学ばせるには？」。その問いが次章のパーセプトロンへ直結します。
+</Paper>
+
+<Paper
+  title="Computing Machinery and Intelligence"
+  authors="A. M. Turing"
+  year="1950"
+  venue="Mind"
+  url="https://academic.oup.com/mind/article/LIX/236/433/986238"
+  badge="知能の定義"
+>
+「機械は考えられるか」という曖昧な問いを、チューリングは**測定可能な問い**に置き換えました。人間の審判が文字だけのやり取りで相手が機械か人間か見分けられなければ、その機械は知的とみなす——有名な<Term id="turing-test">イミテーション・ゲーム（チューリング・テスト）</Term>です。「内部でどう考えているか」を問わず、「ふるまいで区別できるか」だけを問う、徹底した機能主義の宣言でした。
+
+論文の後半は、想定される9つの反論（神学的反論、意識の議論、数学的限界など）への先回りの反駁に費やされます。とりわけ重要なのが最後の提案——大人の知能を直接プログラムするのではなく、*子どもの心*に相当する単純な機械を作り、教育（学習）で育てればよい、という「学習する機械」の構想です。これは後の機械学習の精神を半世紀先取りしています。
+
+知能を「実装」ではなく「観測されるふるまい」で定義したこの論文は、AIという分野が何を目指すのかという目標そのものを設定しました。第8章で、生成AIがこの問いにどう答えたかを再訪します。
+</Paper>
+
+<Paper
+  title="A Proposal for the Dartmouth Summer Research Project on Artificial Intelligence"
+  authors="J. McCarthy, M. Minsky, N. Rochester, C. Shannon"
+  year="1955"
+  venue="提案書"
+  url="http://jmc.stanford.edu/articles/dartmouth/dartmouth.pdf"
+  badge="AIの命名"
+>
+1956年夏にダートマス大学で開く研究集会の**提案書**であり、文書のタイトルに史上初めて "Artificial Intelligence" という語が現れた、分野の出生証明書です。提案を主導したのは当時28歳のジョン・マッカーシー。シャノン（情報理論の父）やミンスキーら4名が名を連ねました。
+
+冒頭の一文が時代の楽観を象徴します——「学習のあらゆる側面や知能のあらゆる特徴は、原理的に、機械でシミュレートできるほど精密に記述できる、という予想に基づいて研究を進める」。言語の使用、抽象化、自己改善といった主題を、*ひと夏で*相当進められると見込んでいました（実際にはその多くが数十年来の難問でした）。
+
+見積もりこそ甘かったものの、この集会が記号処理・探索・ニューラルネットといった潮流に一つの旗を立て、第一次AIブームの号砲となります。AIという物語の「名づけ」がここで起きました。
+</Paper>
 
 ### 原典・参考
 

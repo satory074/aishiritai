@@ -1,0 +1,126 @@
+---
+// 論文解説カード：1本の原典を「タイトル・著者・年・掲載・原文リンク」のヘッダと
+// 詳しい解説（slot 本文）で見せる。PersonCard を手本にした純表示コンポーネント。
+interface Props {
+  title: string;
+  authors: string;
+  year: string | number;
+  venue?: string;
+  url?: string;
+  badge?: string;
+}
+const { title, authors, year, venue, url, badge } = Astro.props;
+const meta = [authors, venue].filter(Boolean).join(" · ");
+---
+
+<article class="paper not-prose">
+  <div class="paper__head">
+    <span class="paper__year mono">{year}</span>
+    <span class="paper__id">
+      <span class="paper__title">
+        {title}
+        {badge && <span class="paper__badge mono">{badge}</span>}
+      </span>
+      {meta && <span class="paper__meta mono">{meta}</span>}
+    </span>
+  </div>
+  <div class="paper__body"><slot /></div>
+  {
+    url && (
+      <div class="paper__links mono">
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          原文 ↗
+        </a>
+      </div>
+    )
+  }
+</article>
+
+<style>
+  .paper {
+    margin: 1.6rem 0;
+    padding: 1.1rem 1.25rem;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--era-hue) 50% 50% / 0.07),
+      var(--surface)
+    );
+    border: 1px solid var(--border);
+    border-left: 3px solid hsl(var(--era-hue) 85% 60%);
+    border-radius: var(--radius);
+  }
+  .paper__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+  }
+  .paper__year {
+    flex: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: hsl(var(--era-hue) 85% 68%);
+    padding-top: 0.1rem;
+  }
+  .paper__id {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+  .paper__title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: #fff;
+  }
+  .paper__badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.5rem;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: hsl(var(--era-hue) 90% 80%);
+    background: hsl(var(--era-hue) 70% 50% / 0.16);
+    border: 1px solid hsl(var(--era-hue) 70% 55% / 0.45);
+    border-radius: 999px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .paper__meta {
+    font-size: 0.74rem;
+    color: var(--text-dim);
+  }
+  .paper__body {
+    margin-top: 0.9rem;
+    font-size: 0.92rem;
+    line-height: 1.85;
+    color: var(--text);
+  }
+  .paper__body :global(:first-child) {
+    margin-top: 0;
+  }
+  .paper__body :global(p) {
+    margin: 0.7rem 0 0;
+  }
+  .paper__body :global(ul) {
+    margin: 0.6rem 0 0;
+    padding-left: 1.2rem;
+  }
+  .paper__body :global(li) {
+    margin-top: 0.2rem;
+  }
+  .paper__body :global(li)::marker {
+    color: hsl(var(--era-hue) 85% 62%);
+  }
+  .paper__links {
+    margin-top: 0.85rem;
+    font-size: 0.76rem;
+  }
+  .paper__links a {
+    color: hsl(var(--era-hue) 90% 74%);
+    border: none;
+  }
+  .paper__links a:hover {
+    text-decoration: underline;
+  }
+</style>

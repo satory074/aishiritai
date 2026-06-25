@@ -1,0 +1,265 @@
+---
+import Demo from "@/components/Demo.astro";
+// 誤差逆伝播＝連鎖律のデモ。L = (w·x − y)² の計算グラフで
+// 順伝播（値）と逆伝播（各局所微分の積で ∂L/∂w を組み立てる）を可視化する。
+---
+
+<Demo
+  title="連鎖律で ∂L/∂w を組み立てる"
+  caption="損失 L=(w·x−y)² を、w→p→e→L の計算グラフに分解。まず順伝播で値を流し、次に逆伝播で各辺の局所微分（×x, −y, 二乗）を右から掛け合わせると ∂L/∂w が出る。これが誤差逆伝播の正体——勾配を辺ごとに分配して掛けるだけ。"
+  label="DEMO 3.2"
+>
+  <div class="bp" data-bpchain>
+    <svg class="bp__svg" viewBox="0 0 480 200" role="img" aria-label="計算グラフ w→p→e→L">
+      <!-- edges -->
+      <g class="bp-edges">
+        <line data-edge="0" class="bp-edge" x1="92" y1="90" x2="158" y2="90"></line>
+        <line data-edge="1" class="bp-edge" x1="212" y1="90" x2="278" y2="90"></line>
+        <line data-edge="2" class="bp-edge" x1="332" y1="90" x2="398" y2="90"></line>
+      </g>
+      <!-- edge op labels (forward) -->
+      <text class="bp-op" x="125" y="78">× x</text>
+      <text class="bp-op" x="245" y="78">− y</text>
+      <text class="bp-op" x="365" y="78">(·)²</text>
+      <!-- backward local-derivative labels -->
+      <text data-back="0" class="bp-back" x="125" y="118">∂p/∂w = x</text>
+      <text data-back="1" class="bp-back" x="245" y="118">∂e/∂p = 1</text>
+      <text data-back="2" class="bp-back" x="365" y="118">∂L/∂e = 2e</text>
+      <!-- nodes -->
+      <g class="bp-nodes">
+        <circle data-node="w" class="bp-node" cx="60" cy="90" r="30"></circle>
+        <circle data-node="p" class="bp-node" cx="185" cy="90" r="30"></circle>
+        <circle data-node="e" class="bp-node" cx="305" cy="90" r="30"></circle>
+        <circle data-node="L" class="bp-node bp-node--out" cx="428" cy="90" r="30"></circle>
+      </g>
+      <text class="bp-nlab" x="60" y="84">w</text>
+      <text data-val="w" class="bp-nval" x="60" y="100">0</text>
+      <text class="bp-nlab" x="185" y="84">p=wx</text>
+      <text data-val="p" class="bp-nval" x="185" y="100">0</text>
+      <text class="bp-nlab" x="305" y="84">e=p−y</text>
+      <text data-val="e" class="bp-nval" x="305" y="100">0</text>
+      <text class="bp-nlab" x="428" y="84">L=e²</text>
+      <text data-val="L" class="bp-nval" x="428" y="100">0</text>
+      <!-- accumulated gradient flowing back -->
+      <text data-grad="L" class="bp-grad" x="428" y="150">δ=1</text>
+      <text data-grad="e" class="bp-grad" x="305" y="150"></text>
+      <text data-grad="p" class="bp-grad" x="185" y="150"></text>
+      <text data-grad="w" class="bp-grad bp-grad--final" x="60" y="150"></text>
+    </svg>
+
+    <div class="bp__ctrls">
+      <div class="d-row">
+        <span class="d-label">w</span>
+        <input class="d-slider" data-s="w" type="range" min="-3" max="3" step="0.1" value="0.5" />
+        <span class="d-val" data-v="w">0.5</span>
+        <span class="d-label" style="margin-left:.5rem">x</span>
+        <input class="d-slider" data-s="x" type="range" min="1" max="3" step="1" value="2" />
+        <span class="d-val" data-v="x">2</span>
+        <span class="d-label" style="margin-left:.5rem">y（目標）</span>
+        <input class="d-slider" data-s="y" type="range" min="1" max="5" step="1" value="3" />
+        <span class="d-val" data-v="y">3</span>
+      </div>
+      <div class="d-row">
+        <button class="d-btn" data-fwd type="button">▶ 順伝播</button>
+        <button class="d-btn" data-bwd type="button">◀ 逆伝播</button>
+        <button class="d-btn d-btn--primary" data-step type="button">勾配降下を1歩 (η=0.1)</button>
+      </div>
+      <div class="d-panel d-readout bp__readout" data-readout></div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const state = { w: 0.5, x: 2, y: 3, eta: 0.1 };
+
+    const setText = (sel: string, t: string) => {
+      const el = get<SVGTextElement>(sel);
+      if (el) el.textContent = t;
+    };
+    const clearBack = () => {
+      root.querySelectorAll<SVGElement>("[data-back]").forEach((e) => e.classList.remove("bp-back--on"));
+      root.querySelectorAll<SVGElement>("[data-grad]").forEach((e) => {
+        if (e.getAttribute("data-grad") !== "L") e.textContent = "";
+      });
+      root.querySelectorAll<SVGElement>("[data-edge],[data-node]").forEach((e) => {
+        e.classList.remove("bp-edge--fwd", "bp-edge--bwd", "bp-node--fwd", "bp-node--bwd");
+      });
+    };
+
+    function values() {
+      const p = state.w * state.x;
+      const e = p - state.y;
+      const L = e * e;
+      return { p, e, L, dLdw: 2 * e * state.x };
+    }
+
+    function render() {
+      const { p, e, L, dLdw } = values();
+      (["w", "x", "y"] as const).forEach((k) => {
+        const v = get<HTMLElement>(`[data-v="${k}"]`);
+        if (v) v.textContent = String(state[k]);
+      });
+      setText('[data-val="w"]', String(r2(state.w)));
+      setText('[data-val="p"]', String(r2(p)));
+      setText('[data-val="e"]', String(r2(e)));
+      setText('[data-val="L"]', String(r2(L)));
+      setText('[data-back="2"]', `∂L/∂e = 2e = ${r2(2 * e)}`);
+      setText('[data-back="0"]', `∂p/∂w = x = ${state.x}`);
+      const readout = get<HTMLElement>("[data-readout]");
+      if (readout) {
+        readout.innerHTML =
+          `順伝播: p = w·x = ${r2(p)}、 e = p−y = ${r2(e)}、 L = e² = <b>${r2(L)}</b><br>` +
+          `逆伝播（連鎖律）: ∂L/∂w = ∂L/∂e · ∂e/∂p · ∂p/∂w = (${r2(2 * e)})·(1)·(${state.x}) = <b>${r2(dLdw)}</b>`;
+      }
+    }
+
+    function sweep(kind: "fwd" | "bwd") {
+      clearBack();
+      const { e, dLdw } = values();
+      if (kind === "fwd") {
+        const order = ["w", "p", "e", "L"];
+        order.forEach((id, i) => {
+          setTimeout(() => {
+            get<SVGElement>(`[data-node="${id}"]`)?.classList.add("bp-node--fwd");
+            if (i > 0) get<SVGElement>(`[data-edge="${i - 1}"]`)?.classList.add("bp-edge--fwd");
+          }, i * 260);
+        });
+      } else {
+        // 右(L)→左(w) へ δ を伝える
+        const grads = [
+          { id: "e", edge: 2, txt: `δ=${r2(2 * e)}`, back: 2 },
+          { id: "p", edge: 1, txt: `δ=${r2(2 * e)}`, back: 1 },
+          { id: "w", edge: 0, txt: `∂L/∂w=${r2(dLdw)}`, back: 0 },
+        ];
+        get<SVGElement>('[data-node="L"]')?.classList.add("bp-node--bwd");
+        grads.forEach((g, i) => {
+          setTimeout(() => {
+            get<SVGElement>(`[data-edge="${g.edge}"]`)?.classList.add("bp-edge--bwd");
+            get<SVGElement>(`[data-node="${g.id}"]`)?.classList.add("bp-node--bwd");
+            get<SVGElement>(`[data-back="${g.back}"]`)?.classList.add("bp-back--on");
+            const gl = get<SVGTextElement>(`[data-grad="${g.id}"]`);
+            if (gl) gl.textContent = g.txt;
+          }, i * 320);
+        });
+      }
+    }
+
+    root.querySelectorAll<HTMLInputElement>("[data-s]").forEach((sl) => {
+      sl.addEventListener("input", () => {
+        const k = sl.dataset.s as "w" | "x" | "y";
+        state[k] = Number(sl.value);
+        clearBack();
+        render();
+      });
+    });
+    get<HTMLButtonElement>("[data-fwd]")?.addEventListener("click", () => sweep("fwd"));
+    get<HTMLButtonElement>("[data-bwd]")?.addEventListener("click", () => sweep("bwd"));
+    get<HTMLButtonElement>("[data-step]")?.addEventListener("click", () => {
+      const { dLdw } = values();
+      state.w = r2(state.w - state.eta * dLdw);
+      const sl = get<HTMLInputElement>('[data-s="w"]');
+      if (sl) sl.value = String(state.w);
+      clearBack();
+      render();
+      sweep("bwd");
+    });
+
+    render();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-bpchain]").forEach(setup);
+</script>
+
+<style is:global>
+  .bp {
+    display: grid;
+    gap: 1rem;
+  }
+  .bp__svg {
+    width: 100%;
+    max-width: 480px;
+    margin-inline: auto;
+    font-family: var(--font-mono);
+  }
+  .bp-edge {
+    stroke: var(--border);
+    stroke-width: 2.5;
+    marker-end: none;
+    transition:
+      stroke 0.2s ease,
+      stroke-width 0.2s ease;
+  }
+  .bp-edge--fwd {
+    stroke: hsl(var(--era-hue) 90% 62%);
+    stroke-width: 4;
+  }
+  .bp-edge--bwd {
+    stroke: var(--amber);
+    stroke-width: 4;
+  }
+  .bp-node {
+    fill: var(--surface);
+    stroke: hsl(var(--era-hue) 50% 50%);
+    stroke-width: 2;
+    transition: all 0.2s ease;
+  }
+  .bp-node--out {
+    stroke: hsl(var(--era-hue) 85% 62%);
+  }
+  .bp-node--fwd {
+    fill: hsl(var(--era-hue) 60% 40% / 0.5);
+    stroke: hsl(var(--era-hue) 90% 66%);
+  }
+  .bp-node--bwd {
+    stroke: var(--amber);
+    fill: hsl(40 60% 40% / 0.25);
+  }
+  .bp-nlab {
+    fill: var(--text-muted);
+    font-size: 11px;
+    text-anchor: middle;
+  }
+  .bp-nval {
+    fill: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-anchor: middle;
+  }
+  .bp-op {
+    fill: var(--text-dim);
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .bp-back {
+    fill: var(--text-dim);
+    font-size: 10.5px;
+    text-anchor: middle;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+  }
+  .bp-back--on {
+    fill: var(--amber);
+    opacity: 1;
+  }
+  .bp-grad {
+    fill: var(--amber);
+    font-size: 12px;
+    font-weight: 700;
+    text-anchor: middle;
+  }
+  .bp-grad--final {
+    fill: var(--green);
+  }
+  .bp__readout {
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .bp__readout b {
+    color: hsl(var(--era-hue) 90% 76%);
+  }
+</style>

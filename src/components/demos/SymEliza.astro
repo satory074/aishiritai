@@ -1,0 +1,267 @@
+---
+import Demo from "@/components/Demo.astro";
+// ELIZA 再現デモ。入力文に単純なパターン規則を当て、人称を反転して鸚鵡返しにする。
+// どの規則が発火したかを右に表示し、「理解しているように見えて、していない」を体感させる。
+---
+
+<Demo
+  title="ELIZA — 規則だけの『理解しているふり』"
+  caption="ELIZA は理解も知識も持たない。やっているのは、入力に簡単なパターンを当て、人称を入れ替えて返すだけ。それでも人は思わず心を打ち明ける——発火した規則を見れば、その『理解』が空っぽなことが分かる。"
+  label="DEMO 2.1"
+>
+  <div class="el" data-eliza>
+    <div class="el__chat" data-log aria-live="polite">
+      <div class="el__msg el__msg--bot">
+        <span class="el__who mono">ELIZA</span>
+        <span class="el__bubble">こんにちは。今日はどんなことを話したいですか？</span>
+      </div>
+    </div>
+
+    <div class="el__inrow">
+      <input
+        class="el__input"
+        data-input
+        type="text"
+        placeholder="例：私は母が嫌いです"
+        aria-label="ELIZA への入力"
+      />
+      <button class="d-btn d-btn--primary" data-send type="button">送信</button>
+    </div>
+
+    <div class="d-row" role="group" aria-label="例文">
+      <span class="d-label">例:</span>
+      <button class="d-chip" data-ex type="button">私は母が嫌いです</button>
+      <button class="d-chip" data-ex type="button">最近よく眠れません</button>
+      <button class="d-chip" data-ex type="button">あなたは私を助けられますか？</button>
+    </div>
+
+    <div class="d-panel el__rules" data-rules>
+      <div class="el__rules-head mono">適用される規則（上から順に判定）</div>
+    </div>
+  </div>
+</Demo>
+
+<script>
+  type Root = HTMLElement;
+
+  type Rule = {
+    id: string;
+    label: string;
+    test: RegExp;
+    reply: (m: RegExpMatchArray) => string;
+  };
+
+  // 私⇄あなた を一度の走査で入れ替える（語尾の丁寧表現は落とす）
+  function swapPerson(s: string): string {
+    return s
+      .replace(/あなた|私/g, (t) => (t === "私" ? "あなた" : "私"))
+      .replace(/(です|ます)(か|ね)?(？|\?)?$/g, "")
+      .trim();
+  }
+
+  const RULES: Rule[] = [
+    {
+      id: "R1",
+      label: "〈母/父/家族〉に言及",
+      test: /(母|父|親|家族|兄|姉|弟|妹)/,
+      reply: () => "あなたの家族について、もっと聞かせてください。",
+    },
+    {
+      id: "R2",
+      label: "〈嫌い/つらい/眠れない〉などの感情語",
+      test: /(嫌い|つらい|苦しい|悲しい|不安|眠れ)/,
+      reply: () => "それはつらいですね。どうしてそう感じるのでしょう？",
+    },
+    {
+      id: "R3",
+      label: "「私は X です」→ X を反射",
+      test: /私は(.+?)(です|ます|だ|なんです)?$/,
+      reply: (m) => `なぜ自分が「${m[1]}」だと感じるのですか？`,
+    },
+    {
+      id: "R4",
+      label: "疑問文（？で終わる）",
+      test: /(？|\?)\s*$/,
+      reply: () => "あなた自身は、どう思いますか？",
+    },
+    {
+      id: "R5",
+      label: "「あなた（ELIZA）」への言及→人称反転",
+      test: /あなた(は|が|を)?(.+)/,
+      reply: (m) => `どうして私が${swapPerson(m[2])}と思うのですか？`,
+    },
+    {
+      id: "R0",
+      label: "（既定）あいづち",
+      test: /.*/,
+      reply: () => "なるほど。もう少し詳しく話してください。",
+    },
+  ];
+
+  function setup(root: Root) {
+    const get = <T extends Element>(sel: string) => root.querySelector(sel) as T | null;
+    const log = get<HTMLElement>("[data-log]");
+    const input = get<HTMLInputElement>("[data-input]");
+    const rulesBox = get<HTMLElement>("[data-rules]");
+
+    // 規則一覧を描画
+    if (rulesBox) {
+      RULES.forEach((r) => {
+        const row = document.createElement("div");
+        row.className = "el__rule";
+        row.dataset.rule = r.id;
+        row.innerHTML = `<span class="el__rid mono">${r.id}</span><span class="el__rlabel"></span>`;
+        (row.querySelector(".el__rlabel") as HTMLElement).textContent = r.label;
+        rulesBox.appendChild(row);
+      });
+    }
+
+    function push(who: "you" | "bot", text: string) {
+      if (!log) return;
+      const msg = document.createElement("div");
+      msg.className = `el__msg el__msg--${who === "you" ? "you" : "bot"}`;
+      const label = who === "you" ? "あなた" : "ELIZA";
+      msg.innerHTML = `<span class="el__who mono">${label}</span><span class="el__bubble"></span>`;
+      (msg.querySelector(".el__bubble") as HTMLElement).textContent = text;
+      log.appendChild(msg);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function highlight(id: string) {
+      root.querySelectorAll<HTMLElement>("[data-rule]").forEach((el) => {
+        el.classList.toggle("el__rule--fire", el.dataset.rule === id);
+      });
+    }
+
+    function respond(text: string) {
+      const t = text.trim();
+      if (!t) return;
+      push("you", t);
+      let fired: Rule = RULES[RULES.length - 1];
+      for (const r of RULES) {
+        const m = t.match(r.test);
+        if (m) {
+          fired = r;
+          push("bot", r.reply(m));
+          break;
+        }
+      }
+      highlight(fired.id);
+      if (input) input.value = "";
+    }
+
+    get<HTMLButtonElement>("[data-send]")?.addEventListener("click", () => {
+      if (input) respond(input.value);
+    });
+    input?.addEventListener("keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Enter") {
+        e.preventDefault();
+        respond(input.value);
+      }
+    });
+    root.querySelectorAll<HTMLButtonElement>("[data-ex]").forEach((b) => {
+      b.addEventListener("click", () => {
+        if (input) input.value = b.textContent ?? "";
+        respond(input?.value ?? "");
+      });
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-eliza]").forEach(setup);
+</script>
+
+<style is:global>
+  .el {
+    display: grid;
+    gap: 0.8rem;
+  }
+  .el__chat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0.8rem;
+    background: hsl(var(--era-hue) 40% 50% / 0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .el__msg {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    max-width: 85%;
+  }
+  .el__msg--you {
+    align-self: flex-end;
+    align-items: flex-end;
+  }
+  .el__who {
+    font-size: 0.64rem;
+    color: var(--text-dim);
+  }
+  .el__bubble {
+    padding: 0.45rem 0.7rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    line-height: 1.6;
+  }
+  .el__msg--bot .el__bubble {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .el__msg--you .el__bubble {
+    background: hsl(var(--era-hue) 70% 45%);
+    color: #fff;
+  }
+  .el__inrow {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .el__input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.86rem;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .el__input:focus {
+    outline: none;
+    border-color: hsl(var(--era-hue) 85% 60%);
+  }
+  .el__rules {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .el__rules-head {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-bottom: 0.2rem;
+  }
+  .el__rule {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+  }
+  .el__rule--fire {
+    background: hsl(var(--era-hue) 70% 50% / 0.18);
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px hsl(var(--era-hue) 85% 60%);
+  }
+  .el__rid {
+    flex: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: hsl(var(--era-hue) 85% 68%);
+  }
+</style>
